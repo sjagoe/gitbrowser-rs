@@ -26,3 +26,20 @@ fn render() {
     // compare buffers and display the differences in a more readable way
     assert_eq!(buf, expected);
 }
+
+#[test]
+fn handle_key_event() -> io::Result<()> {
+    let mut app = App::default();
+
+    app.handle_key_event(KeyCode::Right.into());
+    assert_eq!(app.counter, 1);
+
+    app.handle_key_event(KeyCode::Left.into());
+    assert_eq!(app.counter, 0);
+
+    let mut app = App::default();
+    app.handle_key_event(KeyCode::Char('q').into());
+    assert_eq!(app.exit, true);
+
+    Ok(())
+}
