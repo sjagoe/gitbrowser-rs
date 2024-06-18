@@ -39,7 +39,14 @@
 
           devShells.default = pkgs.mkShell {
             inputsFrom = [ self.packages.${system}.gitbrowser-rs ];
-            packages = [ pkgs.poetry ];
+            packages = with pkgs; [
+              cargo
+              rustc
+              rust-analyzer
+              rustfmt
+              clippy
+              rust.packages.stable.rustPlatform.rustLibSrc
+            ];
           };
         })) // {
           overlays.default = final: prev: {
