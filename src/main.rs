@@ -32,10 +32,47 @@ impl App {
     }
 
     fn render_frame(&self, frame: &mut Frame) {
-        todo!()
+        frame.render_widget(self, frame.size());
     }
 
     fn handle_events(&self) -> io::Result<()> {
         todo!()
     }
 }
+
+
+impl Widget for &App {
+    fn render(self, area: Rect, buf: &mut Buffer) {
+        let title = Title::from(" Counter App Tutorial ".bold());
+        let instructions = Title::from(Line::from(vec![
+            " Decrement ".into(),
+            "<Left>".blue().bold(),
+            " Increment ".into(),
+            "<Right>".blue().bold(),
+            " Quit ".into(),
+            "<Q> ".blue().bold(),
+        ]));
+        let block = Block::default()
+            .title(title.alignment(Alignment::Center))
+            .title(
+                instructions
+                    .alignment(Alignment::Center)
+                    .position(Position::Bottom),
+            )
+            .borders(Borders::ALL)
+            .border_set(border::THICK);
+
+        let counter_text = Text::from(vec![Line::from(vec![
+            "Value: ".into(),
+            self.counter.to_string().yellow(),
+        ])]);
+
+        Paragraph::new(counter_text)
+            .centered()
+            .block(block)
+            .render(area, buf);
+    }
+}
+
+#[cfg(test)]
+mod test_main;
