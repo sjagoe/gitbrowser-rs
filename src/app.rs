@@ -1,3 +1,5 @@
+use git2::Repository;
+
 pub enum CurrentScreen {
     RefBrowser,
     // TreeBrowser,
@@ -6,16 +8,51 @@ pub enum CurrentScreen {
 }
 
 pub struct App {
-    pub search_input: String,              // the currently being edited json key.
-    pub current_screen: CurrentScreen, // the current screen the user is looking at, and will later determine what is rendered.
+    pub search_input: String,
+    pub current_screen: CurrentScreen,
+    pub repo: Repository,
 }
 
 impl App {
-    pub fn new() -> App {
+    pub fn new(repo: Repository) -> App {
         App {
             search_input: String::new(),
             current_screen: CurrentScreen::RefBrowser,
+            repo: repo,
         }
+    }
+
+    pub fn title(&self) -> String {
+        match self.current_screen {
+            CurrentScreen::RefBrowser => {
+                if let Some(path) = self.repo.path().parent() {
+                    if let Some(name) = path.file_name() {
+                        return format!("{}", name.to_string_lossy());
+                    } else {
+                        return format!("{}", path.to_string_lossy());
+                    }
+                } else {
+                    return format!("{}", self.repo.path().to_string_lossy());
+                }
+            }
+            _ => {
+                return "unknown".to_string();
+            }
+        }
+    }
+
+    pub fn items(&self) -> Vec<String> {
+        match self.current_screen {
+            CurrentScreen::RefBrowser => {
+                let mut refs = match self.repo.references() {
+                    Ok(r) => r,
+                    Err(_e) => return vec![],
+                };
+                return refs.names().map(|refname| refname.unwrap().to_string()).collect();
+            }
+            _ => {}
+        }
+        vec![]
     }
 
     // pub fn save_key_value(&mut self) {

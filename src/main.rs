@@ -22,10 +22,32 @@ use color_eyre::{
     Result,
 };
 
+use clap::Parser;
+use git2::Repository;
+
+#[derive(Parser, Debug)]
+#[command(version, about, long_about = None)]
+struct Args {
+    #[arg(short, long)]
+    repository: Option<String>,
+}
+
 fn main() -> Result<()> {
     errors::install_hooks()?;
+
+    let args = Args::parse();
+    let repo_path = match args.repository {
+        Some(repo) => repo,
+        _ => ".".to_string(),
+    };
+
+    let repo = match Repository::open(repo_path) {
+        Ok(repo) => repo,
+        Err(e) => panic!("failed to open: {}", e),
+    };
+
     let mut terminal = tui::init()?;
-    let mut app = App::new();
+    let mut app = App::new(repo);
     run_app(&mut terminal, &mut app)?;
     tui::restore()?;
     Ok(())

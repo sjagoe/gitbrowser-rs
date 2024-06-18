@@ -24,20 +24,20 @@ pub fn ui(f: &mut Frame, app: &App) {
         .style(Style::default());
 
     let title = Paragraph::new(Text::styled(
-        "Create New Json",
+        app.title(),
         Style::default().fg(Color::Green),
     ))
         .block(title_block);
 
     f.render_widget(title, chunks[0]);
-    let list_items = Vec::<ListItem>::new();
+    let mut list_items = Vec::<ListItem>::new();
 
-    // for key in app.pairs.keys() {
-    //     list_items.push(ListItem::new(Line::from(Span::styled(
-    //         format!("{: <25} : {}", key, app.pairs.get(key).unwrap()),
-    //         Style::default().fg(Color::Yellow),
-    //     ))));
-    // }
+    for item in app.items() {
+        list_items.push(ListItem::new(Line::from(Span::styled(
+            item,
+            Style::default().fg(Color::Yellow),
+        ))));
+    }
 
     let list = List::new(list_items);
 
