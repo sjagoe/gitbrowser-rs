@@ -3,7 +3,7 @@ use ratatui::{
     style::{Color, Style},
     text::{Line, Span},
     widgets::{
-        block::Title,
+        block::{Padding, Title},
         Block, Borders, List, ListItem, Paragraph,
     },
     Frame,
@@ -21,19 +21,22 @@ pub fn ui(f: &mut Frame, app: &App) {
         ])
         .split(f.size());
 
-    // let text = Span::styled("Hello", Style::default().fg(Color::Red).bg(Color::Blue));
     let title = Title::from(app.title());
     let content_block = Block::default()
+        .padding(Padding::horizontal(1))
         .borders(Borders::ALL)
         .style(Style::default())
         .title(title);
 
     let mut list_items = Vec::<ListItem>::new();
-    for item in app.items() {
-        list_items.push(ListItem::new(Line::from(Span::styled(
-            item,
-            Style::default().fg(Color::Gray),
-        ))));
+    let items = app.items();
+    for (pos, item) in items.iter().enumerate() {
+        let style = if pos == app.selected_index {
+            Style::default().fg(Color::Black).bg(Color::Cyan)
+        } else {
+            Style::default().fg(Color::Gray)
+        };
+        list_items.push(ListItem::new(Line::from(Span::styled(item, style))));
     }
 
     let list = List::new(list_items).block(content_block);

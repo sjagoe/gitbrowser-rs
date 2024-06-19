@@ -65,11 +65,29 @@ fn run_app<B: Backend>(terminal: &mut Terminal<B>, app: &mut App) -> Result<bool
         match app.current_screen {
             CurrentScreen::RefBrowser => match read_event {
                 Event::Key(KeyEvent {
-                    modifiers: KeyModifiers::CONTROL,
                     code: KeyCode::Char('x'),
+                    modifiers: KeyModifiers::CONTROL,
                     ..
                 }) =>  {
                     return Ok(true);
+                }
+                Event::Key(KeyEvent {
+                    code: KeyCode::Down,
+                    modifiers,
+                    ..
+                }) =>  {
+                    if modifiers == KeyModifiers::empty() {
+                        app.next_selection();
+                    }
+                }
+                Event::Key(KeyEvent {
+                    code: KeyCode::Up,
+                    modifiers,
+                    ..
+                }) =>  {
+                    if modifiers == KeyModifiers::empty() {
+                        app.previous_selection();
+                    }
                 }
                 _ => {}
             },

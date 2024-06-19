@@ -14,6 +14,7 @@ pub enum CurrentScreen {
 }
 
 pub struct App {
+    pub selected_index: usize,
     pub search_input: String,
     pub current_screen: CurrentScreen,
     pub repo: Repository,
@@ -22,6 +23,7 @@ pub struct App {
 impl App {
     pub fn new(repo: Repository) -> App {
         App {
+            selected_index: 0,
             search_input: String::new(),
             current_screen: CurrentScreen::RefBrowser,
             repo: repo,
@@ -58,6 +60,22 @@ impl App {
                 };
                 return refs.names().map(|refname| refname.unwrap().to_string()).collect();
             }
+        }
+    }
+
+    pub fn len(&self) -> usize {
+        return self.items().len();
+    }
+
+    pub fn next_selection(&mut self) {
+        if self.selected_index < self.len() - 1 {
+            self.selected_index += 1;
+        }
+    }
+
+    pub fn previous_selection(&mut self) {
+        if self.selected_index > 0 {
+            self.selected_index -= 1;
         }
     }
 
