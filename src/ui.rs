@@ -11,13 +11,30 @@ use ratatui::{
 
 use crate::app::{App, CurrentScreen};
 
+fn pagination(item_count: usize, visible_item_count: usize, selected_index: usize) -> (usize, usize, usize) {
+    let page_start_index = selected_index - (selected_index % visible_item_count);
+    let pages = if item_count % visible_item_count > 0 {
+        item_count / visible_item_count + 1
+    } else {
+        item_count / visible_item_count
+    };
+    let page = if page_start_index % visible_item_count > 0 {
+        page_start_index / visible_item_count + 1
+    } else {
+        page_start_index / visible_item_count
+    };
+    (page, pages, page_start_index)
+}
+
 pub fn ui(f: &mut Frame, app: &App) {
     // Create the layout sections.
+    let footer_min = 3;
+    let box_border = 2;
     let chunks = Layout::default()
         .direction(Direction::Vertical)
         .constraints([
-            Constraint::Min(1),
-            Constraint::Length(3),
+            Constraint::Min(box_border + 2),
+            Constraint::Length(footer_min),
         ])
         .split(f.size());
 
@@ -30,8 +47,14 @@ pub fn ui(f: &mut Frame, app: &App) {
 
     let mut list_items = Vec::<ListItem>::new();
     let items = app.items();
-    for (pos, item) in items.iter().enumerate() {
-        let style = if pos == app.selected_index {
+
+    let visible = f.size().height - footer_min - box_border;
+    let (_page, _pages, page_start_index) = pagination(items.len(), visible.into(), app.selected_index);
+
+    let display_items = &items[page_start_index .. page_start_index + usize::from(visible)];
+
+    for (pos, item) in display_items.iter().enumerate() {
+        let style = if pos + page_start_index == app.selected_index {
             Style::default().fg(Color::Black).bg(Color::Cyan)
         } else {
             Style::default().fg(Color::Gray)
