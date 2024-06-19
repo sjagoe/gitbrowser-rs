@@ -31,24 +31,27 @@ impl App {
     }
 
     pub fn title(&self) -> Vec<Span> {
-        let title = match self.current_screen {
-            CurrentScreen::RefBrowser => {
-                if let Some(path) = self.repo.path().parent() {
-                    if let Some(name) = path.file_name() {
-                        format!(" {} ", name.to_string_lossy())
-                    } else {
-                        format!(" {} ", path.to_string_lossy())
-                    }
-                } else {
-                    format!(" {} ", self.repo.path().to_string_lossy())
-                }
-            }
-        };
-        return vec![
-            Span::styled(
-                title,
-                Style::default().fg(Color::Green).add_modifier(Modifier::BOLD)),
+        let mut parts = vec![
+            Span::from(" "),
         ];
+        let repo_name = if let Some(path) = self.repo.path().parent() {
+            if let Some(name) = path.file_name() {
+                format!("{}", name.to_string_lossy())
+            } else {
+                format!("{}", path.to_string_lossy())
+            }
+        } else {
+            format!("{}", self.repo.path().to_string_lossy())
+        };
+        parts.push(
+            Span::styled(
+                repo_name,
+                Style::default().fg(Color::Green).add_modifier(Modifier::BOLD)),
+        );
+        parts.push(
+            Span::from(" "),
+        );
+        return parts;
     }
 
     pub fn items(&self) -> Vec<String> {
