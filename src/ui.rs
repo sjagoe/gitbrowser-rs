@@ -51,7 +51,12 @@ pub fn ui(f: &mut Frame, app: &App) {
     let visible = f.size().height - footer_min - box_border;
     let (_page, _pages, page_start_index) = pagination(items.len(), visible.into(), app.selected_index);
 
-    let display_items = &items[page_start_index .. page_start_index + usize::from(visible)];
+    let end_slice = if page_start_index + usize::from(visible) >= items.len() {
+        items.len()
+    } else {
+        page_start_index + usize::from(visible)
+    };
+    let display_items = &items[page_start_index .. end_slice];
 
     for (pos, item) in display_items.iter().enumerate() {
         let style = if pos + page_start_index == app.selected_index {
