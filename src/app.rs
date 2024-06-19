@@ -28,23 +28,7 @@ pub struct App<'repo> {
     pub selected_index: usize,
     pub search_input: String,
     pub current_screen: CurrentScreen,
-    current_page: RefsPage<'repo>,
-}
-
-pub trait DrawablePage {
-    fn draw(&self, f: &mut Frame, area: Rect, content_block: Block, reserved_rows: u16);
-
-    fn title(&self) -> String;
-}
-
-pub trait BrowsablePage {
-    fn next_selection(&mut self);
-
-    fn previous_selection(&mut self);
-
-    fn select(&mut self);
-
-    fn back(&mut self);
+    refs_page: RefsPage<'repo>,
 }
 
 impl<'repo> RefsPage<'repo> {
@@ -62,9 +46,7 @@ impl<'repo> RefsPage<'repo> {
         };
         return refs.names().map(|refname| refname.unwrap().to_string()).collect();
     }
-}
 
-impl<'repo> DrawablePage for RefsPage<'repo> {
     fn draw(&self, f: &mut Frame, area: Rect, content_block: Block, reserved_rows: u16) {
         let mut list_items = Vec::<ListItem>::new();
         let items = self.items();
@@ -102,9 +84,7 @@ impl<'repo> DrawablePage for RefsPage<'repo> {
             return format!("{}", self.repo.path().to_string_lossy());
         };
     }
-}
 
-impl<'repo> BrowsablePage for RefsPage<'repo> {
     fn next_selection(&mut self) {
         if self.selected_index < self.items().len() - 1 {
             self.selected_index += 1;
@@ -129,7 +109,7 @@ impl<'repo> App<'repo> {
             selected_index: 0,
             search_input: String::new(),
             current_screen: CurrentScreen::RefBrowser,
-            current_page: RefsPage::new(repo)
+            refs_page: RefsPage::new(repo)
         }
     }
 
@@ -139,7 +119,7 @@ impl<'repo> App<'repo> {
         ];
         parts.push(
             Span::styled(
-                self.current_page.title(),
+                self.refs_page.title(),
                 Style::default().fg(Color::Green).add_modifier(Modifier::BOLD)),
         );
         parts.push(Span::from(" "));
@@ -154,23 +134,23 @@ impl<'repo> App<'repo> {
             .style(Style::default())
             .title(title);
 
-        self.current_page.draw(f, area, content_block, reserved_rows);
+        self.refs_page.draw(f, area, content_block, reserved_rows);
     }
 
     pub fn next_selection(&mut self) {
-        self.current_page.next_selection();
+        self.refs_page.next_selection();
     }
 
     pub fn previous_selection(&mut self) {
-        self.current_page.previous_selection();
+        self.refs_page.previous_selection();
     }
 
     pub fn select(&mut self) {
-        self.current_page.select();
+        self.refs_page.select();
     }
 
     pub fn back(&mut self) {
-        self.current_page.back();
+        self.refs_page.back();
     }
 
     // pub fn save_key_value(&mut self) {
