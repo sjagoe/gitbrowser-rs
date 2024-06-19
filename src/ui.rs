@@ -57,7 +57,7 @@ pub fn ui(f: &mut Frame, app: &App) {
     let current_keys_hint = {
         match app.current_screen {
             CurrentScreen::RefBrowser => Span::styled(
-                "(q) to quit",
+                "(^x) to exit",
                 Style::default().fg(Color::Red),
             ),
         }

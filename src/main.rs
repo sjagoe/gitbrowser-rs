@@ -1,5 +1,5 @@
 use crossterm::{
-    event::{self, Event, KeyCode, KeyEventKind},
+    event::{self, Event, KeyCode, KeyEvent, KeyEventKind, KeyModifiers},
 };
 use ratatui::{
     backend::{Backend, CrosstermBackend},
@@ -55,21 +55,24 @@ fn run_app<B: Backend>(terminal: &mut Terminal<B>, app: &mut App) -> Result<bool
     loop {
         terminal.draw(|f| ui(f, app))?;
 
-        if let Event::Key(key) = event::read()? {
-            if key.kind == event::KeyEventKind::Release {
+        let read_event = event::read()?;
+        if let Event::Key(key) = read_event {
+            if key.kind == KeyEventKind::Release {
                 // Skip events that are not KeyEventKind::Press
                 continue;
             }
-            match app.current_screen {
-                CurrentScreen::RefBrowser => match key.code {
-                    // KeyCode::Char('e') => {
-                    //     app.current_screen = CurrentScreen::Editing;
-                    // }
-                    KeyCode::Char('q') => {
-                        return Ok(true);
-                    }
-                    _ => {}
-                },
+        }
+        match app.current_screen {
+            CurrentScreen::RefBrowser => match read_event {
+                Event::Key(KeyEvent {
+                    modifiers: KeyModifiers::CONTROL,
+                    code: KeyCode::Char('x'),
+                    ..
+                }) =>  {
+                    return Ok(true);
+                }
+                _ => {}
+            },
                 // CurrentScreen::Editing if key.kind == KeyEventKind::Press => {
                 //     match key.code {
                 //         KeyCode::Enter => {
@@ -119,8 +122,7 @@ fn run_app<B: Backend>(terminal: &mut Terminal<B>, app: &mut App) -> Result<bool
                 //         _ => {}
                 //     }
                 // }
-                _ => {}
-            }
+            _ => {}
         }
     }
 }
