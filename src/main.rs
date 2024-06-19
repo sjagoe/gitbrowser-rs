@@ -2,7 +2,7 @@ use crossterm::{
     event::{self, Event, KeyCode, KeyEvent, KeyEventKind, KeyModifiers},
 };
 use ratatui::{
-    backend::{Backend, CrosstermBackend},
+    backend::{Backend},
     Terminal,
 };
 
@@ -16,7 +16,6 @@ use crate::{
 };
 
 use color_eyre::{
-    eyre::{bail, WrapErr},
     Result,
 };
 
