@@ -62,7 +62,30 @@ impl App {
                     Err(_e) => return vec![],
                 };
                 return refs.names().map(|refname| refname.unwrap().to_string()).collect();
-            }
+            },
+            _ => vec![],
+        }
+    }
+
+    pub fn select(&mut self) {
+        match self.current_screen {
+            CurrentScreen::RefBrowser => {
+                self.current_screen = CurrentScreen::TreeBrowser;
+                self.selected_index = 0;
+            },
+            _ => {},
+        }
+    }
+
+    pub fn back(&mut self) {
+        match self.current_screen {
+            CurrentScreen::RefBrowser => {
+                self.selected_index = 0;
+            },
+            CurrentScreen::TreeBrowser => {
+                self.current_screen = CurrentScreen::RefBrowser;
+                self.selected_index = 0;
+            },
         }
     }
 

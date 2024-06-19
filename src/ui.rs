@@ -9,7 +9,7 @@ use ratatui::{
     Frame,
 };
 
-use crate::app::{App, CurrentScreen};
+use crate::app::{App};
 
 fn pagination(item_count: usize, visible_item_count: usize, selected_index: usize) -> (usize, usize, usize) {
     let page_start_index = selected_index - (selected_index % visible_item_count);
@@ -65,11 +65,10 @@ pub fn ui(f: &mut Frame, app: &App) {
     let list = List::new(list_items).block(content_block);
 
     f.render_widget(list, chunks[0]);
-
     let current_keys_hint = {
         match app.current_screen {
-            CurrentScreen::RefBrowser => Span::styled(
-                "(^x) to exit",
+            _ => Span::styled(
+                "(^x) exit | (^g) back",
                 Style::default().fg(Color::Red),
             ),
         }

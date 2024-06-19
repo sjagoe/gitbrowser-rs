@@ -55,21 +55,23 @@ fn run_app<B: Backend>(terminal: &mut Terminal<B>, app: &mut App) -> Result<bool
         terminal.draw(|f| ui(f, app))?;
 
         let read_event = event::read()?;
+        // Global keys
         if let Event::Key(key) = read_event {
             if key.kind == KeyEventKind::Release {
                 // Skip events that are not KeyEventKind::Press
                 continue;
             }
+            if key.code == KeyCode::Char('x') && key.modifiers == KeyModifiers::CONTROL {
+                return Ok(true);
+            }
+            if key.code == KeyCode::Char('g') && key.modifiers == KeyModifiers::CONTROL {
+                app.back();
+                continue;
+            }
         }
+        // Page-specific keys
         match app.current_screen {
             CurrentScreen::RefBrowser => match read_event {
-                Event::Key(KeyEvent {
-                    code: KeyCode::Char('x'),
-                    modifiers: KeyModifiers::CONTROL,
-                    ..
-                }) =>  {
-                    return Ok(true);
-                }
                 Event::Key(KeyEvent {
                     code: KeyCode::Down,
                     modifiers,
@@ -88,8 +90,18 @@ fn run_app<B: Backend>(terminal: &mut Terminal<B>, app: &mut App) -> Result<bool
                         app.previous_selection();
                     }
                 }
+                Event::Key(KeyEvent {
+                    code: KeyCode::Enter,
+                    modifiers,
+                    ..
+                }) =>  {
+                    if modifiers == KeyModifiers::empty() {
+                        app.select();
+                    }
+                }
                 _ => {}
-            },
+            }
+            _ => {}
                 // CurrentScreen::Editing if key.kind == KeyEventKind::Press => {
                 //     match key.code {
                 //         KeyCode::Enter => {
@@ -139,7 +151,6 @@ fn run_app<B: Backend>(terminal: &mut Terminal<B>, app: &mut App) -> Result<bool
                 //         _ => {}
                 //     }
                 // }
-            _ => {}
         }
     }
 }
