@@ -65,20 +65,6 @@ pub fn ui(f: &mut Frame, app: &App) {
     let list = List::new(list_items).block(content_block);
 
     f.render_widget(list, chunks[0]);
-    let current_navigation_text = vec![
-        // The first half of the text
-        match app.current_screen {
-            CurrentScreen::RefBrowser => Span::styled("Normal Mode", Style::default().fg(Color::Green)),
-        }
-        .to_owned(),
-        // A white divider bar to separate the two sections
-        Span::styled(" | ", Style::default().fg(Color::White)),
-        // The final section of the text, with hints on what the user is editing
-        Span::styled("Not doing anything", Style::default().fg(Color::DarkGray))
-    ];
-
-    let mode_footer = Paragraph::new(Line::from(current_navigation_text))
-        .block(Block::default().borders(Borders::ALL));
 
     let current_keys_hint = {
         match app.current_screen {
@@ -92,13 +78,7 @@ pub fn ui(f: &mut Frame, app: &App) {
     let key_notes_footer =
         Paragraph::new(Line::from(current_keys_hint)).block(Block::default().borders(Borders::ALL));
 
-    let footer_chunks = Layout::default()
-        .direction(Direction::Horizontal)
-        .constraints([Constraint::Percentage(50), Constraint::Percentage(50)])
-        .split(chunks[1]);
-
-    f.render_widget(mode_footer, footer_chunks[0]);
-    f.render_widget(key_notes_footer, footer_chunks[1]);
+    f.render_widget(key_notes_footer, chunks[1]);
 
     // if let Some(editing) = &app.currently_editing {
     //     let popup_block = Block::default()
