@@ -1,7 +1,5 @@
 use crossterm::{
-    event::{self, DisableMouseCapture, EnableMouseCapture, Event, KeyCode, KeyEventKind},
-    execute,
-    terminal::{disable_raw_mode, enable_raw_mode, EnterAlternateScreen, LeaveAlternateScreen},
+    event::{self, Event, KeyCode, KeyEventKind},
 };
 use ratatui::{
     backend::{Backend, CrosstermBackend},
@@ -68,14 +66,9 @@ fn run_app<B: Backend>(terminal: &mut Terminal<B>, app: &mut App) -> Result<bool
                     //     app.current_screen = CurrentScreen::Editing;
                     // }
                     KeyCode::Char('q') => {
-                        app.current_screen = CurrentScreen::Exit;
-                    }
-                    _ => {}
-                },
-                CurrentScreen::Exit => match key.code {
-                    _ => {
                         return Ok(true);
                     }
+                    _ => {}
                 },
                 // CurrentScreen::Editing if key.kind == KeyEventKind::Press => {
                 //     match key.code {

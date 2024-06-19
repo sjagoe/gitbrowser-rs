@@ -1,8 +1,11 @@
 use ratatui::{
     layout::{Constraint, Direction, Layout, Rect},
     style::{Color, Style},
-    text::{Line, Span, Text},
-    widgets::{Block, Borders, Clear, List, ListItem, Paragraph, Wrap},
+    text::{Line, Span},
+    widgets::{
+        block::Title,
+        Block, Borders, List, ListItem, Paragraph,
+    },
     Frame,
 };
 
@@ -13,40 +16,33 @@ pub fn ui(f: &mut Frame, app: &App) {
     let chunks = Layout::default()
         .direction(Direction::Vertical)
         .constraints([
-            Constraint::Length(3),
             Constraint::Min(1),
             Constraint::Length(3),
         ])
         .split(f.size());
 
-    let title_block = Block::default()
+    // let text = Span::styled("Hello", Style::default().fg(Color::Red).bg(Color::Blue));
+    let title = Title::from(app.title());
+    let content_block = Block::default()
         .borders(Borders::ALL)
-        .style(Style::default());
+        .style(Style::default())
+        .title(title);
 
-    let title = Paragraph::new(Text::styled(
-        app.title(),
-        Style::default().fg(Color::Green),
-    ))
-        .block(title_block);
-
-    f.render_widget(title, chunks[0]);
     let mut list_items = Vec::<ListItem>::new();
-
     for item in app.items() {
         list_items.push(ListItem::new(Line::from(Span::styled(
             item,
-            Style::default().fg(Color::Yellow),
+            Style::default().fg(Color::Gray),
         ))));
     }
 
-    let list = List::new(list_items);
+    let list = List::new(list_items).block(content_block);
 
-    f.render_widget(list, chunks[1]);
+    f.render_widget(list, chunks[0]);
     let current_navigation_text = vec![
         // The first half of the text
         match app.current_screen {
             CurrentScreen::RefBrowser => Span::styled("Normal Mode", Style::default().fg(Color::Green)),
-            CurrentScreen::Exit => Span::styled("Exiting", Style::default().fg(Color::LightRed)),
         }
         .to_owned(),
         // A white divider bar to separate the two sections
@@ -64,10 +60,6 @@ pub fn ui(f: &mut Frame, app: &App) {
                 "(q) to quit",
                 Style::default().fg(Color::Red),
             ),
-            CurrentScreen::Exit => Span::styled(
-                "(q) to quit",
-                Style::default().fg(Color::Red),
-            ),
         }
     };
 
@@ -77,7 +69,7 @@ pub fn ui(f: &mut Frame, app: &App) {
     let footer_chunks = Layout::default()
         .direction(Direction::Horizontal)
         .constraints([Constraint::Percentage(50), Constraint::Percentage(50)])
-        .split(chunks[2]);
+        .split(chunks[1]);
 
     f.render_widget(mode_footer, footer_chunks[0]);
     f.render_widget(key_notes_footer, footer_chunks[1]);
@@ -113,26 +105,6 @@ pub fn ui(f: &mut Frame, app: &App) {
     //     let value_text = Paragraph::new(app.value_input.clone()).block(value_block);
     //     f.render_widget(value_text, popup_chunks[1]);
     // }
-
-    if let CurrentScreen::Exit = app.current_screen {
-        f.render_widget(Clear, f.size()); //this clears the entire screen and anything already drawn
-        let popup_block = Block::default()
-            .title("Y/N")
-            .borders(Borders::NONE)
-            .style(Style::default().bg(Color::DarkGray));
-
-        let exit_text = Text::styled(
-            "Would you like to output the buffer as json? (y/n)",
-            Style::default().fg(Color::Red),
-        );
-        // the `trim: false` will stop the text from being cut off when over the edge of the block
-        let exit_paragraph = Paragraph::new(exit_text)
-            .block(popup_block)
-            .wrap(Wrap { trim: false });
-
-        let area = centered_rect(60, 25, f.size());
-        f.render_widget(exit_paragraph, area);
-    }
 }
 
 /// helper function to create a centered rect using up certain percentage of the available rect `r`

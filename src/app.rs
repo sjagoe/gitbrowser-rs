@@ -1,10 +1,16 @@
 use git2::Repository;
 
+use ratatui::{
+    prelude::Modifier,
+    style::{Color, Style},
+    text::{Span},
+};
+
 pub enum CurrentScreen {
     RefBrowser,
     // TreeBrowser,
     // Pager,
-    Exit,
+    // Exit,
 }
 
 pub struct App {
@@ -22,23 +28,25 @@ impl App {
         }
     }
 
-    pub fn title(&self) -> String {
-        match self.current_screen {
+    pub fn title(&self) -> Vec<Span> {
+        let title = match self.current_screen {
             CurrentScreen::RefBrowser => {
                 if let Some(path) = self.repo.path().parent() {
                     if let Some(name) = path.file_name() {
-                        return format!("{}", name.to_string_lossy());
+                        format!(" {} ", name.to_string_lossy())
                     } else {
-                        return format!("{}", path.to_string_lossy());
+                        format!(" {} ", path.to_string_lossy())
                     }
                 } else {
-                    return format!("{}", self.repo.path().to_string_lossy());
+                    format!(" {} ", self.repo.path().to_string_lossy())
                 }
             }
-            _ => {
-                return "unknown".to_string();
-            }
-        }
+        };
+        return vec![
+            Span::styled(
+                title,
+                Style::default().fg(Color::Green).add_modifier(Modifier::BOLD)),
+        ];
     }
 
     pub fn items(&self) -> Vec<String> {
@@ -50,9 +58,7 @@ impl App {
                 };
                 return refs.names().map(|refname| refname.unwrap().to_string()).collect();
             }
-            _ => {}
         }
-        vec![]
     }
 
     // pub fn save_key_value(&mut self) {
