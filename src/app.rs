@@ -1,4 +1,4 @@
-use git2::Repository;
+use git2::{Repository, Object, Tree};
 
 use ratatui::{
     prelude::Modifier,
@@ -17,9 +17,91 @@ struct RefsPage<'repo> {
     selected_index: usize,
 }
 
+#[derive(Clone)]
+struct TreePage<'repo> {
+    repo: &'repo Repository,
+    tree_object: Object<'repo>,
+    selected_index: usize,
+    name: String,
+}
+
 pub struct App<'repo> {
     pub search_input: String,
     refs_page: RefsPage<'repo>,
+    tree_pages: Vec<TreePage<'repo>>,
+}
+
+impl<'repo> TreePage<'repo> {
+    pub fn new(repo: &'repo Repository, tree_object: Object<'repo>, name: String) -> TreePage<'repo> {
+        TreePage {
+            selected_index: 0,
+            repo: repo,
+            tree_object: tree_object,
+            name: name,
+        }
+    }
+
+    pub fn draw(&self, f: &mut Frame, area: Rect, content_block: Block, reserved_rows: u16) {
+        match self.tree_object.peel_to_tree() {
+            Ok(tree) => {
+                let mut list_items = Vec::<ListItem>::new();
+                let iter = tree.iter();
+
+                let visible = f.size().height - reserved_rows;
+                let (_page, _pages, page_start_index) = pagination(tree.len(), visible.into(), self.selected_index);
+
+                let display_items = iter.skip(page_start_index).take(visible.into());
+
+                for (pos, tree_entry) in display_items.enumerate() {
+                    let style = if pos + page_start_index == self.selected_index {
+                        Style::default().fg(Color::Black).bg(Color::Cyan)
+                    } else {
+                        Style::default().fg(Color::Gray)
+                    };
+
+                    if let Some(item) = tree_entry.name() {
+                        list_items.push(ListItem::new(Line::from(Span::styled(format!("{}", item), style))));
+                    } else {
+                        list_items.push(ListItem::new(Line::from(Span::styled("????item", style))));
+                    }
+                }
+                let content = List::new(list_items).block(content_block);
+                f.render_widget(content, area);
+            }
+            Err(e) => {
+                panic!("failed to peel tree {}", e);
+            }
+        }
+    }
+
+    pub fn title(&self) -> String {
+        return format!("{}", self.name);
+    }
+
+    fn len(&self) -> usize {
+        match self.tree_object.peel_to_tree() {
+            Ok(tree) => {
+                return tree.len();
+            }
+            Err(_) => {
+                return 0;
+            }
+        }
+    }
+
+    pub fn next_selection(&mut self) {
+        if self.selected_index < self.len() - 1 {
+            self.selected_index += 1;
+        }
+    }
+
+    pub fn previous_selection(&mut self) {
+        if self.selected_index > 0 {
+            self.selected_index -= 1;
+        }
+    }
+
+    pub fn select(&mut self) {}
 }
 
 impl<'repo> RefsPage<'repo> {
@@ -38,7 +120,7 @@ impl<'repo> RefsPage<'repo> {
         return refs.names().map(|refname| refname.unwrap().to_string()).collect();
     }
 
-    fn draw(&self, f: &mut Frame, area: Rect, content_block: Block, reserved_rows: u16) {
+    pub fn draw(&self, f: &mut Frame, area: Rect, content_block: Block, reserved_rows: u16) {
         let mut list_items = Vec::<ListItem>::new();
         let items = self.items();
 
@@ -64,7 +146,7 @@ impl<'repo> RefsPage<'repo> {
         f.render_widget(content, area);
     }
 
-    fn title(&self) -> String {
+    pub fn title(&self) -> String {
         if let Some(path) = self.repo.path().parent() {
             if let Some(name) = path.file_name() {
                 return format!("{}", name.to_string_lossy());
@@ -76,21 +158,37 @@ impl<'repo> RefsPage<'repo> {
         };
     }
 
-    fn next_selection(&mut self) {
+    pub fn next_selection(&mut self) {
         if self.selected_index < self.items().len() - 1 {
             self.selected_index += 1;
         }
     }
 
-    fn previous_selection(&mut self) {
+    pub fn previous_selection(&mut self) {
         if self.selected_index > 0 {
             self.selected_index -= 1;
         }
     }
 
-    fn select(&mut self) {}
+    pub fn select(&mut self) -> TreePage<'repo> {
+        let selected_ref = &self.items()[self.selected_index];
+        match self.repo.revparse_single(selected_ref) {
+            Ok(object) => {
+                let page = TreePage::new(
+                    self.repo,
+                    object,
+                    "".into(),
+                );
+                return page;
+            }
+            Err(e) => {
+                panic!("Couldn't parse ref {}", e);
+            }
+        }
 
-    fn back(&mut self) {}
+    }
+
+    pub fn back(&mut self) {}
 }
 
 
@@ -98,7 +196,8 @@ impl<'repo> App<'repo> {
     pub fn new(repo: &'repo Repository) -> App<'repo> {
         App {
             search_input: String::new(),
-            refs_page: RefsPage::new(repo)
+            refs_page: RefsPage::new(repo),
+            tree_pages: vec![],
         }
     }
 
@@ -112,6 +211,14 @@ impl<'repo> App<'repo> {
                 Style::default().fg(Color::Green).add_modifier(Modifier::BOLD)),
         );
         parts.push(Span::from(" "));
+        for page in self.tree_pages.iter() {
+            parts.push(
+                Span::styled(
+                    format!("{}/", page.title()),
+                    Style::default().fg(Color::Blue).add_modifier(Modifier::BOLD)),
+            );
+        }
+        parts.push(Span::from(" "));
         return parts;
     }
 
@@ -123,23 +230,44 @@ impl<'repo> App<'repo> {
             .style(Style::default())
             .title(title);
 
-        self.refs_page.draw(f, area, content_block, reserved_rows);
+        if let Some(page) = self.tree_pages.last() {
+            page.draw(f, area, content_block, reserved_rows);
+        } else {
+            self.refs_page.draw(f, area, content_block, reserved_rows);
+        }
     }
 
     pub fn next_selection(&mut self) {
-        self.refs_page.next_selection();
+        if let Some(page) = self.tree_pages.last_mut() {
+            page.next_selection();
+        } else {
+            self.refs_page.next_selection();
+        }
     }
 
     pub fn previous_selection(&mut self) {
-        self.refs_page.previous_selection();
+        if let Some(page) = self.tree_pages.last_mut() {
+            page.previous_selection();
+        } else {
+            self.refs_page.previous_selection();
+        }
     }
 
     pub fn select(&mut self) {
-        self.refs_page.select();
+        if let Some(page) = self.tree_pages.last_mut() {
+            eprintln!("Tree selected");
+            page.select();
+        } else {
+            eprintln!("Ref selected");
+            let new_page = self.refs_page.select();
+            self.tree_pages.push(new_page);
+        }
     }
 
     pub fn back(&mut self) {
-        self.refs_page.back();
+        if self.tree_pages.pop().is_none() {
+            self.refs_page.back();
+        }
     }
 
     // pub fn save_key_value(&mut self) {
