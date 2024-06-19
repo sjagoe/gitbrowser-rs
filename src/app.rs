@@ -12,22 +12,13 @@ use ratatui::{
     Frame,
 };
 
-pub enum CurrentScreen {
-    RefBrowser,
-    TreeBrowser,
-    // Pager,
-    // Exit,
-}
-
 struct RefsPage<'repo> {
     repo: &'repo Repository,
     selected_index: usize,
 }
 
 pub struct App<'repo> {
-    pub selected_index: usize,
     pub search_input: String,
-    pub current_screen: CurrentScreen,
     refs_page: RefsPage<'repo>,
 }
 
@@ -106,9 +97,7 @@ impl<'repo> RefsPage<'repo> {
 impl<'repo> App<'repo> {
     pub fn new(repo: &'repo Repository) -> App<'repo> {
         App {
-            selected_index: 0,
             search_input: String::new(),
-            current_screen: CurrentScreen::RefBrowser,
             refs_page: RefsPage::new(repo)
         }
     }

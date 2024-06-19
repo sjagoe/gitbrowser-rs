@@ -11,7 +11,7 @@ mod tui;
 mod app;
 mod ui;
 use crate::{
-    app::{App, CurrentScreen},
+    app::{App},
     ui::ui,
 };
 
