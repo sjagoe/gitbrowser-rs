@@ -8,7 +8,7 @@ use ratatui::{
 
 pub enum CurrentScreen {
     RefBrowser,
-    // TreeBrowser,
+    TreeBrowser,
     // Pager,
     // Exit,
 }
