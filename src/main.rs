@@ -44,7 +44,7 @@ fn main() -> Result<()> {
     };
 
     let mut terminal = tui::init()?;
-    let mut app = App::new(repo);
+    let mut app = App::new(&repo);
     run_app(&mut terminal, &mut app)?;
     tui::restore()?;
     Ok(())
@@ -70,38 +70,36 @@ fn run_app<B: Backend>(terminal: &mut Terminal<B>, app: &mut App) -> Result<bool
             }
         }
         // Page-specific keys
-        match app.current_screen {
-            CurrentScreen::RefBrowser => match read_event {
-                Event::Key(KeyEvent {
-                    code: KeyCode::Down,
-                    modifiers,
-                    ..
-                }) =>  {
-                    if modifiers == KeyModifiers::empty() {
-                        app.next_selection();
-                    }
+        match read_event {
+            Event::Key(KeyEvent {
+                code: KeyCode::Down,
+                modifiers,
+                ..
+            }) =>  {
+                if modifiers == KeyModifiers::empty() {
+                    app.next_selection();
                 }
-                Event::Key(KeyEvent {
-                    code: KeyCode::Up,
-                    modifiers,
-                    ..
-                }) =>  {
-                    if modifiers == KeyModifiers::empty() {
-                        app.previous_selection();
-                    }
+            }
+            Event::Key(KeyEvent {
+                code: KeyCode::Up,
+                modifiers,
+                ..
+            }) =>  {
+                if modifiers == KeyModifiers::empty() {
+                    app.previous_selection();
                 }
-                Event::Key(KeyEvent {
-                    code: KeyCode::Enter,
-                    modifiers,
-                    ..
-                }) =>  {
-                    if modifiers == KeyModifiers::empty() {
-                        app.select();
-                    }
+            }
+            Event::Key(KeyEvent {
+                code: KeyCode::Enter,
+                modifiers,
+                ..
+            }) =>  {
+                if modifiers == KeyModifiers::empty() {
+                    app.select();
                 }
-                _ => {}
             }
             _ => {}
+        }
                 // CurrentScreen::Editing if key.kind == KeyEventKind::Press => {
                 //     match key.code {
                 //         KeyCode::Enter => {
@@ -151,6 +149,5 @@ fn run_app<B: Backend>(terminal: &mut Terminal<B>, app: &mut App) -> Result<bool
                 //         _ => {}
                 //     }
                 // }
-        }
     }
 }
