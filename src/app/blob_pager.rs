@@ -7,6 +7,9 @@ use ratatui::{
     Frame,
 };
 
+use color_eyre::Result;
+
+use crate::errors::{ErrorKind, GitBrowserError};
 use crate::traits::{Drawable, Navigable};
 
 pub struct BlobPager {
@@ -37,13 +40,13 @@ impl<'repo> BlobPager {
         repo: &'repo Repository,
         object: Object<'repo>,
         name: String,
-    ) -> Option<Self> {
+    ) -> Result<Self, GitBrowserError> {
         match object.into_blob() {
             Ok(blob) => {
                 if blob.is_binary() {
-                    None
+                    Err(GitBrowserError::Error(ErrorKind::BinaryFileError))
                 } else {
-                    Some(BlobPager::new(repo, blob, name))
+                    Ok(BlobPager::new(repo, blob, name))
                 }
             }
             Err(_) => panic!("peeling blob"),

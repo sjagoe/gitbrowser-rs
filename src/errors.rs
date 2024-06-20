@@ -1,3 +1,5 @@
+use std::error::Error;
+use std::fmt;
 use std::panic;
 
 use color_eyre::{config::HookBuilder, eyre};
@@ -22,4 +24,46 @@ pub fn install_hooks() -> color_eyre::Result<()> {
     ))?;
 
     Ok(())
+}
+
+#[derive(Clone, Copy, Debug)]
+pub enum GitBrowserError {
+    Error(ErrorKind),
+}
+
+impl GitBrowserError {
+    pub fn as_str(&self) -> &str {
+        match &self {
+            GitBrowserError::Error(err) => err.as_str(),
+        }
+    }
+}
+
+#[derive(Clone, Copy, Debug, Eq, Hash, Ord, PartialEq, PartialOrd)]
+pub enum ErrorKind {
+    BinaryFileError,
+}
+
+impl ErrorKind {
+    pub fn as_str(&self) -> &str {
+        match *self {
+            ErrorKind::BinaryFileError => "Unable to load and display binary files",
+        }
+    }
+}
+
+impl fmt::Display for GitBrowserError {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        match *self {
+            GitBrowserError::Error(err) => write!(f, "{:?}", err.as_str()),
+        }
+    }
+}
+
+impl Error for GitBrowserError {
+    fn description(&self) -> &str {
+        match &self {
+            GitBrowserError::Error(err) => err.as_str(),
+        }
+    }
 }
