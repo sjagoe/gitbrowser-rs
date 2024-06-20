@@ -67,9 +67,7 @@ impl<'repo> App<'repo> {
         if let Some(object) = &commit_object {
             match object.peel_to_commit() {
                 Ok(commit) => {
-                    let mut tree_pages: Vec<TreePage<'repo>> = Vec::new();
-                    tree_pages.push(TreePage::new(repo, object.clone(), "".to_string()));
-                    new.tree_pages = tree_pages;
+                    new.tree_pages = vec![TreePage::new(repo, object.clone(), "".to_string())];
                     new.mode = vec![AppMode::BrowseTrees];
                     new.commit = Some(commit.clone());
                 }
