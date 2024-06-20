@@ -15,7 +15,6 @@ pub struct BlobPager<'repo> {
     // blob: Blob<'repo>,
     name: String,
     lines: Vec<Line<'repo>>,
-    height: u16,
 }
 
 impl<'repo> BlobPager<'repo> {
@@ -34,7 +33,6 @@ impl<'repo> BlobPager<'repo> {
             // blob: blob.clone(),
             name: name,
             lines: lines,
-            height: 0,
         }
     }
 
@@ -45,10 +43,6 @@ impl<'repo> BlobPager<'repo> {
             }
             Err(_) => panic!("peeling blob"),
         }
-    }
-
-    pub fn set_height(&mut self, h: u16) {
-        self.height = h;
     }
 }
 
@@ -71,8 +65,8 @@ impl<'repo> Drawable<'repo> for BlobPager<'repo> {
 }
 
 impl<'repo> Navigable<'repo> for BlobPager<'repo> {
-    fn pagedown(&mut self) {
-        let h: usize = self.height.into();
+    fn pagedown(&mut self, page_size: u16) {
+        let h: usize = page_size.into();
         let top = self.top + h;
         self.top = if top > self.lines.len() {
             self.lines.len() - 1
@@ -81,8 +75,8 @@ impl<'repo> Navigable<'repo> for BlobPager<'repo> {
         }
     }
 
-    fn pageup(&mut self) {
-        let h: usize = self.height.into();
+    fn pageup(&mut self, page_size: u16) {
+        let h: usize = page_size.into();
         if self.top < h {
             self.top = 0;
         } else {

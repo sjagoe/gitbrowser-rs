@@ -34,6 +34,7 @@ pub struct App<'repo> {
     tree_pages: Vec<TreePage<'repo>>,
     blob_pager: Option<BlobPager<'repo>>,
     mode: AppMode,
+    height: u16,
 }
 
 impl<'repo> App<'repo> {
@@ -51,6 +52,7 @@ impl<'repo> App<'repo> {
                         tree_pages: tree_pages,
                         blob_pager: None,
                         mode: AppMode::ByCommit,
+                        height: 0,
                     };
                 }
                 Err(e) => panic!("Failed to get commit {}", e),
@@ -64,13 +66,13 @@ impl<'repo> App<'repo> {
             tree_pages: tree_pages,
             blob_pager: None,
             mode: AppMode::ByRef,
+            height: 0,
         };
     }
 
+
     pub fn set_height(&mut self, h: u16) {
-        if let Some(page) = &mut self.blob_pager {
-            page.set_height(h);
-        }
+        self.height = h;
     }
 
     pub fn title(&self) -> Vec<Span> {
@@ -139,7 +141,7 @@ impl<'repo> App<'repo> {
         } else {
             Box::new(&mut self.refs_page)
         };
-        page.pagedown();
+        page.pagedown(self.height);
     }
 
     pub fn pageup(&mut self) {
@@ -150,7 +152,7 @@ impl<'repo> App<'repo> {
         } else {
             Box::new(&mut self.refs_page)
         };
-        page.pageup();
+        page.pageup(self.height);
     }
 
     pub fn next_selection(&mut self) {

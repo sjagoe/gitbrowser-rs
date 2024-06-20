@@ -15,8 +15,8 @@ pub trait Display {
 }
 
 pub trait Navigable<'repo> {
-    fn pagedown(&mut self);
-    fn pageup(&mut self);
+    fn pagedown(&mut self, page_size: u16);
+    fn pageup(&mut self, page_size: u16);
     fn next_selection(&mut self);
     fn previous_selection(&mut self);
     fn select(&self) -> Option<(Object<'repo>, String)>;
