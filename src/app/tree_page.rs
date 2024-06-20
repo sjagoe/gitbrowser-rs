@@ -87,11 +87,7 @@ impl<'repo> Navigable<'repo> for TreePage<'repo> {
     }
 
     fn end(&mut self, _page_size: u16) {
-        self.selected_index = if self.len() > 0 {
-            self.len() - 1
-        } else {
-            0
-        };
+        self.selected_index = if self.len() > 0 { self.len() - 1 } else { 0 };
     }
 
     fn pagedown(&mut self, page_size: u16) {

@@ -70,7 +70,6 @@ impl<'repo> App<'repo> {
         };
     }
 
-
     pub fn set_height(&mut self, h: u16) {
         self.height = h;
     }

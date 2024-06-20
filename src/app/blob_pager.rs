@@ -23,10 +23,7 @@ impl<'repo> BlobPager {
             Ok(v) => v,
             Err(e) => panic!("unable to decode utf8 {}", e),
         };
-        let lines = content
-            .lines()
-            .map(|line| line.to_string())
-            .collect();
+        let lines = content.lines().map(|line| line.to_string()).collect();
         BlobPager {
             top: 0,
             // repo: repo,
@@ -55,23 +52,33 @@ impl<'repo> Drawable<'repo> for BlobPager {
             self.top + viewport
         };
         let filler: Vec<Line> = if bottom - self.top < viewport {
-            let v: Vec<Line> = vec![Line::styled("~", Style::default().add_modifier(Modifier::DIM))];
+            let v: Vec<Line> = vec![Line::styled(
+                "~",
+                Style::default().add_modifier(Modifier::DIM),
+            )];
             let len = viewport - (bottom - self.top);
             v.iter().cycle().take(len).cloned().collect()
         } else {
             vec![]
         };
         let lines: Vec<Line> = self.lines[self.top..bottom]
-            .iter().enumerate()
+            .iter()
+            .enumerate()
             .map(|(index, text)| {
                 let tmp = format!("{}", bottom);
                 let width = tmp.len();
                 let formatted = format!("{:width$} | ", index + self.top);
                 let lineno = Span::styled(formatted, Style::default().add_modifier(Modifier::DIM));
                 return Line::from(vec![lineno, Span::from(text)]);
-            }).collect();
-        let filled_lines: Vec<Line> = lines.iter().cloned().chain(filler.iter().cloned()).collect();
-        let content = Paragraph::new(filled_lines.into_iter().collect::<Vec<Line>>()).block(content_block);
+            })
+            .collect();
+        let filled_lines: Vec<Line> = lines
+            .iter()
+            .cloned()
+            .chain(filler.iter().cloned())
+            .collect();
+        let content =
+            Paragraph::new(filled_lines.into_iter().collect::<Vec<Line>>()).block(content_block);
         f.render_widget(content, area);
     }
 
