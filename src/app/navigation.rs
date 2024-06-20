@@ -14,11 +14,10 @@ pub enum NavigationAction {
 
 impl From<KeyEvent> for NavigationAction {
     fn from(key: KeyEvent) -> NavigationAction {
-        let b: u8 = KeyModifiers::CONTROL.bits();
         match (key.code, key.modifiers.bits()) {
             (KeyCode::Enter, 0) => NavigationAction::Select,
             (KeyCode::Char('g'), modifiers) => {
-                if modifiers == b {
+                if modifiers == KeyModifiers::CONTROL.bits() {
                     NavigationAction::Back
                 } else {
                     NavigationAction::Invalid
