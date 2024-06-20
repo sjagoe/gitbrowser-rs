@@ -2,17 +2,20 @@ use git2::{Commit, Object, ObjectType, Repository};
 
 use ratatui::{
     layout::Rect,
-    prelude::Modifier,
+    prelude::{Modifier, Text},
     style::{Color, Style},
     text::Span,
     widgets::{
         block::{Padding, Title},
-        Block, Borders,
+        Block, Borders, Paragraph,
     },
     Frame,
 };
 
-use crate::traits::{Drawable, Navigable};
+use crate::{
+    traits::{Drawable, Navigable},
+    ui::centered_rect,
+};
 use color_eyre::Result;
 
 mod blob_pager;
@@ -21,8 +24,12 @@ mod pagination;
 mod refs_page;
 mod tree_page;
 
-use crate::app::{
-    blob_pager::BlobPager, navigation::NavigationAction, refs_page::RefsPage, tree_page::TreePage,
+use crate::{
+    app::{
+        blob_pager::BlobPager, navigation::NavigationAction, refs_page::RefsPage,
+        tree_page::TreePage,
+    },
+    errors::GitBrowserError,
 };
 
 enum AppMode {
@@ -39,6 +46,7 @@ pub struct App<'repo> {
     blob_pager: Option<BlobPager>,
     mode: AppMode,
     height: u16,
+    active_error: Option<GitBrowserError>,
 }
 
 impl<'repo> App<'repo> {
@@ -57,6 +65,7 @@ impl<'repo> App<'repo> {
                         blob_pager: None,
                         mode: AppMode::ByCommit,
                         height: 0,
+                        active_error: None,
                     };
                 }
                 Err(e) => panic!("Failed to get commit {}", e),
@@ -71,6 +80,7 @@ impl<'repo> App<'repo> {
             blob_pager: None,
             mode: AppMode::ByRef,
             height: 0,
+            active_error: None,
         };
     }
 
@@ -134,9 +144,32 @@ impl<'repo> App<'repo> {
         };
 
         page.draw(f, area, content_block, reserved_rows);
+        if let Some(error) = self.active_error {
+            self.display_error(f, &error)
+        }
     }
 
-    pub fn navigate(&mut self, action: NavigationAction) -> Result<()> {
+    fn display_error(&self, f: &mut Frame, error: &GitBrowserError) {
+        let area = centered_rect(60, 25, f.size());
+        let popup_block = Block::default()
+            .padding(Padding::horizontal(1))
+            .borders(Borders::ALL)
+            .title(Span::styled(
+                " Error ",
+                Style::default().fg(Color::Red).add_modifier(Modifier::BOLD),
+            ))
+            .style(Style::default().bg(Color::DarkGray));
+        let content = Paragraph::new(Text::styled(
+            error.as_str().to_string(),
+            Style::default()
+                .fg(Color::White)
+                .add_modifier(Modifier::BOLD),
+        ))
+        .block(popup_block);
+        f.render_widget(content, area);
+    }
+
+    pub fn navigate(&mut self, action: NavigationAction) -> Result<(), GitBrowserError> {
         let page: Box<&mut dyn Navigable> = if let Some(pager) = &mut self.blob_pager {
             Box::new(pager)
         } else if let Some(p) = self.tree_pages.last_mut() {
@@ -159,7 +192,7 @@ impl<'repo> App<'repo> {
         Ok(())
     }
 
-    pub fn select(&mut self) -> Result<()> {
+    pub fn select(&mut self) -> Result<(), GitBrowserError> {
         if self.blob_pager.is_none() {
             let page: Box<&dyn Navigable> = if let Some(p) = self.tree_pages.last() {
                 Box::new(p)
@@ -196,7 +229,9 @@ impl<'repo> App<'repo> {
     }
 
     pub fn back(&mut self) {
-        if self.blob_pager.is_none() {
+        if self.active_error.is_some() {
+            self.active_error = None;
+        } else if self.blob_pager.is_none() {
             match self.mode {
                 AppMode::ByRef => {
                     self.tree_pages.pop();
@@ -213,5 +248,9 @@ impl<'repo> App<'repo> {
         } else {
             self.blob_pager = None;
         }
+    }
+
+    pub fn error(&mut self, error: GitBrowserError) {
+        self.active_error = Some(error);
     }
 }
