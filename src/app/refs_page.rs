@@ -103,21 +103,13 @@ impl<'repo> Navigable<'repo> for RefsPage<'repo> {
 
     fn pagedown(&mut self, page_size: u16) {
         let h: usize = page_size.into();
-        let selected_index = self.selected_index + h;
-        self.selected_index = if selected_index > self.len() {
-            self.len() - 1
-        } else {
-            selected_index
-        }
+        let index = self.selected_index.saturating_add(h);
+        self.selected_index = index.min(index.saturating_sub(1));
     }
 
     fn pageup(&mut self, page_size: u16) {
         let h: usize = page_size.into();
-        if self.selected_index < h {
-            self.selected_index = 0;
-        } else {
-            self.selected_index -= h;
-        }
+        self.selected_index = self.selected_index.saturating_sub(h);
     }
 
     fn next_selection(&mut self) {
