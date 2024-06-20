@@ -153,7 +153,7 @@ impl<'repo> App<'repo> {
             NavigationAction::PageDown => page.pagedown(self.height),
             NavigationAction::NextSelection => page.next_selection(),
             NavigationAction::PreviousSelection => page.previous_selection(),
-            _ => {}
+            NavigationAction::Invalid => {}
         }
     }
 
