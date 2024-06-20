@@ -1,0 +1,25 @@
+name: Test
+
+on:
+  pull_request:
+  push:
+
+jobs:
+  build:
+    name: Build
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Get required nix channel
+        id: channel
+        shell: bash
+        run: |
+          CHANNEL="$(grep 'nixpkgs\.url' flake.nix | sed 's#.*github:NixOS/nixpkgs/\(nixos-[[:digit:]]\+\.[[:digit:]]\+\).*#\1#')"
+          echo "name=$CHANNEL" >> "$GITHUB_OUTPUT"
+      - name: Install nix
+        uses: cachix/install-nix-action@v22
+        with:
+          nix_path: nixpkgs=channel:${{ steps.channel.outputs.name }}
+      - name: Build
+        run: nix build
