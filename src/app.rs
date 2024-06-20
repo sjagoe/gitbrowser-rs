@@ -1,4 +1,4 @@
-use git2::{Repository, Object, Tree};
+use git2::{Repository, Object, ObjectType, Tree, TreeEntry};
 
 use ratatui::{
     prelude::Modifier,
@@ -19,7 +19,6 @@ struct RefsPage<'repo> {
     selected_index: usize,
 }
 
-#[derive(Clone)]
 struct TreePage<'repo> {
     repo: &'repo Repository,
     tree_object: Object<'repo>,
@@ -29,8 +28,15 @@ struct TreePage<'repo> {
 
 pub struct App<'repo> {
     pub search_input: String,
+    repo: &'repo Repository,
     refs_page: RefsPage<'repo>,
     tree_pages: Vec<TreePage<'repo>>,
+}
+
+trait Navigable<'repo> {
+    fn next_selection(&mut self);
+    fn previous_selection(&mut self);
+    fn select(&self) -> (Object<'repo>, String);
 }
 
 impl<'repo> TreePage<'repo> {
@@ -87,34 +93,39 @@ impl<'repo> TreePage<'repo> {
             }
         }
     }
+}
 
-    pub fn next_selection(&mut self) {
+impl<'repo> Navigable<'repo> for TreePage<'repo> {
+    fn next_selection(&mut self) {
         if self.selected_index < self.len() - 1 {
             self.selected_index += 1;
         }
     }
 
-    pub fn previous_selection(&mut self) {
+    fn previous_selection(&mut self) {
         if self.selected_index > 0 {
             self.selected_index -= 1;
         }
     }
 
-    pub fn select(&mut self) -> TreePage<'repo> {
+    fn select(&self) -> (Object<'repo>, String) {
         match self.tree_object.peel_to_tree() {
             Ok(tree) => {
                 if let Some(entry) = tree.get(self.selected_index) {
                     match entry.to_object(self.repo) {
                         Ok(object) => {
-                            if let Some(name) = entry.name() {
-                                let page = TreePage::new(
-                                    self.repo,
-                                    object,
-                                    name.into(),
-                                );
-                                return page;
-                            } else {
-                                panic!("Failed to get tree entry name");
+                            match object.kind() {
+                                Some(ObjectType::Tree) => {
+                                    if let Some(name) = entry.name() {
+                                        return (object, name.into());
+                                    } else {
+                                        panic!("Failed to get tree entry name");
+                                    }
+                                }
+                                Some(ObjectType::Blob) => {
+                                    panic!("read blob");
+                                }
+                                _ => panic!("not implemented")
                             }
                         }
                         Err(e) => {
@@ -189,29 +200,26 @@ impl<'repo> RefsPage<'repo> {
             return format!("{}", self.repo.path().to_string_lossy());
         };
     }
+}
 
-    pub fn next_selection(&mut self) {
+impl<'repo> Navigable<'repo> for RefsPage<'repo> {
+    fn next_selection(&mut self) {
         if self.selected_index < self.items().len() - 1 {
             self.selected_index += 1;
         }
     }
 
-    pub fn previous_selection(&mut self) {
+    fn previous_selection(&mut self) {
         if self.selected_index > 0 {
             self.selected_index -= 1;
         }
     }
 
-    pub fn select(&mut self) -> TreePage<'repo> {
+    fn select(&self) -> (Object<'repo>, String) {
         let selected_ref = &self.items()[self.selected_index];
         match self.repo.revparse_single(selected_ref) {
             Ok(object) => {
-                let page = TreePage::new(
-                    self.repo,
-                    object,
-                    "".into(),
-                );
-                return page;
+                return (object, "".into());
             }
             Err(e) => {
                 panic!("Couldn't parse ref {}", e);
@@ -219,8 +227,6 @@ impl<'repo> RefsPage<'repo> {
         }
 
     }
-
-    pub fn back(&mut self) {}
 }
 
 
@@ -228,6 +234,7 @@ impl<'repo> App<'repo> {
     pub fn new(repo: &'repo Repository) -> App<'repo> {
         App {
             search_input: String::new(),
+            repo: repo,
             refs_page: RefsPage::new(repo),
             tree_pages: vec![],
         }
@@ -286,19 +293,23 @@ impl<'repo> App<'repo> {
     }
 
     pub fn select(&mut self) {
-        if let Some(page) = self.tree_pages.last_mut() {
-            let new_page = page.select();
-            self.tree_pages.push(new_page);
+        let page: Box<&dyn Navigable> = if let Some(p) = self.tree_pages.last() {
+            Box::new(p)
         } else {
-            let new_page = self.refs_page.select();
-            self.tree_pages.push(new_page);
-        }
+            Box::new(&self.refs_page)
+        };
+        let (object, name) = page.select();
+        self.tree_pages.push(
+            TreePage::new(
+                self.repo,
+                object,
+                name,
+            ),
+        );
     }
 
     pub fn back(&mut self) {
-        if self.tree_pages.pop().is_none() {
-            self.refs_page.back();
-        }
+        self.tree_pages.pop();
     }
 
     // pub fn save_key_value(&mut self) {
