@@ -12,6 +12,8 @@ use ratatui::{
     Frame,
 };
 
+use crate::display::Display;
+
 struct RefsPage<'repo> {
     repo: &'repo Repository,
     selected_index: usize,
@@ -52,18 +54,11 @@ impl<'repo> TreePage<'repo> {
 
                 let display_items = iter.skip(page_start_index).take(visible.into());
 
-                for (pos, tree_entry) in display_items.enumerate() {
-                    let style = if pos + page_start_index == self.selected_index {
-                        Style::default().fg(Color::Black).bg(Color::Cyan)
-                    } else {
-                        Style::default().fg(Color::Gray)
-                    };
-
-                    if let Some(item) = tree_entry.name() {
-                        list_items.push(ListItem::new(Line::from(Span::styled(format!("{}", item), style))));
-                    } else {
-                        list_items.push(ListItem::new(Line::from(Span::styled("????item", style))));
-                    }
+                for (pos, entry) in display_items.enumerate() {
+                    let selected = pos + page_start_index == self.selected_index;
+                    let (value, style) = entry.display_name(selected);
+                    let line = Line::from(Span::styled(value, style));
+                    list_items.push(ListItem::new(line));
                 }
                 let content = List::new(list_items).block(content_block);
                 f.render_widget(content, area);
@@ -255,10 +250,8 @@ impl<'repo> App<'repo> {
 
     pub fn select(&mut self) {
         if let Some(page) = self.tree_pages.last_mut() {
-            eprintln!("Tree selected");
             page.select();
         } else {
-            eprintln!("Ref selected");
             let new_page = self.refs_page.select();
             self.tree_pages.push(new_page);
         }
