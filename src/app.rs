@@ -260,10 +260,15 @@ impl<'repo> App<'repo> {
                 Style::default().fg(Color::Green).add_modifier(Modifier::BOLD)),
         );
         parts.push(Span::from(" "));
-        for page in self.tree_pages.iter() {
+        for (ix, page) in self.tree_pages.iter().enumerate() {
+            let sep = if ix > 0 {
+                "/"
+            } else {
+                ""
+            };
             parts.push(
                 Span::styled(
-                    format!("{}/", page.title()),
+                    format!("{}{}", page.title(), sep),
                     Style::default().fg(Color::Blue).add_modifier(Modifier::BOLD)),
             );
         }
