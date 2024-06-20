@@ -101,18 +101,24 @@ impl<'repo> App<'repo> {
         if let Some(commit) = &self.commit {
             parts.push(Span::styled(
                 "@",
-                Style::default().fg(Color::White).add_modifier(Modifier::BOLD),
+                Style::default()
+                    .fg(Color::White)
+                    .add_modifier(Modifier::BOLD),
             ));
             parts.push(Span::styled(
                 commit.id().to_string(),
-                Style::default().fg(Color::Yellow).add_modifier(Modifier::BOLD),
+                Style::default()
+                    .fg(Color::Yellow)
+                    .add_modifier(Modifier::BOLD),
             ));
         }
 
         if self.tree_pages.len() > 1 || self.blob_pager.is_some() {
             parts.push(Span::styled(
                 ": ",
-                Style::default().fg(Color::White).add_modifier(Modifier::BOLD),
+                Style::default()
+                    .fg(Color::White)
+                    .add_modifier(Modifier::BOLD),
             ));
         }
 
