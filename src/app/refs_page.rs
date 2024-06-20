@@ -21,7 +21,7 @@ pub struct RefsPage<'repo> {
 impl<'repo> RefsPage<'repo> {
     pub fn new(repo: &'repo Repository) -> RefsPage<'repo> {
         RefsPage {
-            repo: repo,
+            repo,
             selected_index: 0,
         }
     }

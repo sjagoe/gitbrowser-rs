@@ -28,8 +28,8 @@ impl<'repo> BlobPager {
             top: 0,
             // repo: repo,
             // blob: blob.clone(),
-            name: name,
-            lines: lines,
+            name,
+            lines,
         }
     }
 

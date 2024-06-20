@@ -46,10 +46,10 @@ impl<'repo> App<'repo> {
                     tree_pages.push(TreePage::new(repo, object.clone(), "".to_string()));
                     return App {
                         search_input: String::new(),
-                        repo: repo,
+                        repo,
                         refs_page: RefsPage::new(repo),
                         commit: Some(commit.clone()),
-                        tree_pages: tree_pages,
+                        tree_pages,
                         blob_pager: None,
                         mode: AppMode::ByCommit,
                         height: 0,
@@ -60,10 +60,10 @@ impl<'repo> App<'repo> {
         }
         return App {
             search_input: String::new(),
-            repo: repo,
+            repo,
             refs_page: RefsPage::new(repo),
             commit: None,
-            tree_pages: tree_pages,
+            tree_pages,
             blob_pager: None,
             mode: AppMode::ByRef,
             height: 0,

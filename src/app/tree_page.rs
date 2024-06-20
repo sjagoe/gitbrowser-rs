@@ -25,9 +25,9 @@ impl<'repo> TreePage<'repo> {
     ) -> TreePage<'repo> {
         TreePage {
             selected_index: 0,
-            repo: repo,
-            tree_object: tree_object,
-            name: name,
+            repo,
+            tree_object,
+            name,
         }
     }
 
