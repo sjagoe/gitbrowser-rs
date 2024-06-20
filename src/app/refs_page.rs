@@ -105,11 +105,11 @@ impl<'repo> Navigable<'repo> for RefsPage<'repo> {
         }
     }
 
-    fn select(&self) -> (Object<'repo>, String) {
+    fn select(&self) -> Option<(Object<'repo>, String)> {
         let selected_ref = &self.items()[self.selected_index];
         match self.repo.revparse_single(selected_ref) {
             Ok(object) => {
-                return (object, "".into());
+                return Some((object, "".into()));
             }
             Err(e) => {
                 panic!("Couldn't parse ref {}", e);

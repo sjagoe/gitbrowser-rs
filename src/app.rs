@@ -107,7 +107,9 @@ impl<'repo> App<'repo> {
     }
 
     pub fn next_selection(&mut self) {
-        if self.blob_pager.is_none() {
+        if let Some(pager) = &mut self.blob_pager {
+            pager.next_selection();
+        } else {
             if let Some(page) = self.tree_pages.last_mut() {
                 page.next_selection();
             } else {
@@ -117,7 +119,9 @@ impl<'repo> App<'repo> {
     }
 
     pub fn previous_selection(&mut self) {
-        if self.blob_pager.is_none() {
+        if let Some(pager) = &mut self.blob_pager {
+            pager.previous_selection();
+        } else {
             if let Some(page) = self.tree_pages.last_mut() {
                 page.previous_selection();
             } else {
@@ -133,36 +137,37 @@ impl<'repo> App<'repo> {
             } else {
                 Box::new(&self.refs_page)
             };
-            let (object, name) = page.select();
-            match object.kind() {
-                Some(ObjectType::Blob) => {
-                    self.blob_pager = Some(BlobPager::from_object(self.repo, object, page.selected_item()));
-                },
-                Some(ObjectType::Tree) => {
-                    self.tree_pages.push(
-                        TreePage::new(
-                            self.repo,
-                            object,
-                            name,
-                        ),
-                    );
-                }
-                Some(ObjectType::Commit) => {
-                    match object.peel_to_commit() {
-                        Ok(commit) => {
-                            self.commit = Some(commit);
-                            self.tree_pages.push(
-                                TreePage::new(
-                                    self.repo,
-                                    object,
-                                    name,
-                                ),
-                            );
-                        }
-                        Err(e) => panic!("Unable to peel commit? {}", e)
+            if let Some((object, name)) = page.select() {
+                match object.kind() {
+                    Some(ObjectType::Blob) => {
+                        self.blob_pager = Some(BlobPager::from_object(self.repo, object, page.selected_item()));
+                    },
+                    Some(ObjectType::Tree) => {
+                        self.tree_pages.push(
+                            TreePage::new(
+                                self.repo,
+                                object,
+                                name,
+                            ),
+                        );
                     }
+                    Some(ObjectType::Commit) => {
+                        match object.peel_to_commit() {
+                            Ok(commit) => {
+                                self.commit = Some(commit);
+                                self.tree_pages.push(
+                                    TreePage::new(
+                                        self.repo,
+                                        object,
+                                        name,
+                                    ),
+                                );
+                            }
+                            Err(e) => panic!("Unable to peel commit? {}", e)
+                        }
+                    }
+                    _ => {}
                 }
-                _ => {}
             }
         }
     }

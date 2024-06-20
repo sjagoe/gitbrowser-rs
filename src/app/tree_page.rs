@@ -95,14 +95,14 @@ impl<'repo> Navigable<'repo> for TreePage<'repo> {
         }
     }
 
-    fn select(&self) -> (Object<'repo>, String) {
+    fn select(&self) -> Option<(Object<'repo>, String)> {
         match self.tree_object.peel_to_tree() {
             Ok(tree) => {
                 if let Some(entry) = tree.get(self.selected_index) {
                     match entry.to_object(self.repo) {
                         Ok(object) => {
                             if let Some(name) = entry.name() {
-                                return (object, name.into());
+                                return Some((object, name.into()));
                             } else {
                                 panic!("Failed to get tree entry name");
                             }
