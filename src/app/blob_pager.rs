@@ -33,10 +33,17 @@ impl<'repo> BlobPager {
         }
     }
 
-    pub fn from_object(repo: &'repo Repository, object: Object<'repo>, name: String) -> Self {
+    pub fn from_object(
+        repo: &'repo Repository,
+        object: Object<'repo>,
+        name: String,
+    ) -> Option<Self> {
         match object.into_blob() {
             Ok(blob) => {
-                return BlobPager::new(repo, blob, name);
+                if blob.is_binary() {
+                    return None;
+                }
+                return Some(BlobPager::new(repo, blob, name));
             }
             Err(_) => panic!("peeling blob"),
         }

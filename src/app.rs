@@ -208,11 +208,11 @@ impl<'repo> App<'repo> {
             if let Some((object, name)) = page.select() {
                 match object.kind() {
                     Some(ObjectType::Blob) => {
-                        self.blob_pager = Some(BlobPager::from_object(
-                            self.repo,
-                            object,
-                            page.selected_item(),
-                        ));
+                        if let Some(pager) =
+                            BlobPager::from_object(self.repo, object, page.selected_item())
+                        {
+                            self.blob_pager = Some(pager);
+                        }
                     }
                     Some(ObjectType::Tree) => {
                         self.tree_pages.push(TreePage::new(self.repo, object, name));
