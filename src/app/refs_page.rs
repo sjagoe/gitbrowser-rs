@@ -83,13 +83,13 @@ impl<'repo> Drawable<'repo> for RefsPage<'repo> {
     fn title(&self) -> String {
         if let Some(path) = self.repo.path().parent() {
             if let Some(name) = path.file_name() {
-                return format!("{}", name.to_string_lossy());
+                format!("{}", name.to_string_lossy())
             } else {
-                return format!("{}", path.to_string_lossy());
+                format!("{}", path.to_string_lossy())
             }
         } else {
-            return format!("{}", self.repo.path().to_string_lossy());
-        };
+            format!("{}", self.repo.path().to_string_lossy())
+        }
     }
 }
 
@@ -117,7 +117,7 @@ impl<'repo> Navigable<'repo> for RefsPage<'repo> {
         if self.selected_index < h {
             self.selected_index = 0;
         } else {
-            self.selected_index = self.selected_index - h;
+            self.selected_index -= h;
         }
     }
 
@@ -141,7 +141,7 @@ impl<'repo> Navigable<'repo> for RefsPage<'repo> {
         let selected_ref = &self.items()[self.selected_index];
         match self.repo.revparse_single(selected_ref) {
             Ok(object) => {
-                return Some((object, "".into()));
+                Some((object, "".to_string()))
             }
             Err(e) => {
                 panic!("Couldn't parse ref {}", e);
@@ -151,9 +151,10 @@ impl<'repo> Navigable<'repo> for RefsPage<'repo> {
 
     fn selected_item(&self) -> String {
         let items = &self.items();
-        if items.len() == 0 {
-            return "".to_string();
+        if items.is_empty() {
+            "".to_string()
+        } else {
+            items[self.selected_index].to_string()
         }
-        return format!("{}", items[self.selected_index]);
     }
 }
