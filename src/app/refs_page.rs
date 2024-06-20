@@ -27,10 +27,9 @@ impl<'repo> RefsPage<'repo> {
     }
 
     fn len(&self) -> usize {
-        match self.repo.references() {
-            Ok(refs) => refs.count(),
-            Err(_) => 0,
-        }
+        self.repo.references()
+            .map(|refs| refs.count())
+            .unwrap_or(0)
     }
 
     fn items(&self) -> Vec<String> {
