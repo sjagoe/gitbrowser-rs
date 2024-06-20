@@ -13,6 +13,7 @@ use ratatui::{
 };
 
 use crate::traits::{Drawable, Navigable};
+use color_eyre::Result;
 
 mod blob_pager;
 pub mod navigation;
@@ -135,7 +136,7 @@ impl<'repo> App<'repo> {
         page.draw(f, area, content_block, reserved_rows);
     }
 
-    pub fn navigate(&mut self, action: NavigationAction) {
+    pub fn navigate(&mut self, action: NavigationAction) -> Result<()> {
         let page: Box<&mut dyn Navigable> = if let Some(pager) = &mut self.blob_pager {
             Box::new(pager)
         } else if let Some(p) = self.tree_pages.last_mut() {
@@ -145,7 +146,7 @@ impl<'repo> App<'repo> {
         };
 
         match action {
-            NavigationAction::Select => self.select(),
+            NavigationAction::Select => self.select()?,
             NavigationAction::Back => self.back(),
             NavigationAction::Home => page.home(self.height),
             NavigationAction::End => page.end(self.height),
@@ -155,9 +156,10 @@ impl<'repo> App<'repo> {
             NavigationAction::PreviousSelection => page.previous_selection(),
             NavigationAction::Invalid => {}
         }
+        Ok(())
     }
 
-    pub fn select(&mut self) {
+    pub fn select(&mut self) -> Result<()> {
         if self.blob_pager.is_none() {
             let page: Box<&dyn Navigable> = if let Some(p) = self.tree_pages.last() {
                 Box::new(p)
@@ -167,10 +169,13 @@ impl<'repo> App<'repo> {
             if let Some((object, name)) = page.select() {
                 match object.kind() {
                     Some(ObjectType::Blob) => {
-                        if let Some(pager) =
-                            BlobPager::from_object(self.repo, object, page.selected_item())
-                        {
-                            self.blob_pager = Some(pager);
+                        match BlobPager::from_object(self.repo, object, page.selected_item()) {
+                            Ok(pager) => {
+                                self.blob_pager = Some(pager);
+                            }
+                            Err(e) => {
+                                return Err(e);
+                            }
                         }
                     }
                     Some(ObjectType::Tree) => {
@@ -187,6 +192,7 @@ impl<'repo> App<'repo> {
                 }
             }
         }
+        Ok(())
     }
 
     pub fn back(&mut self) {

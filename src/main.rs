@@ -73,7 +73,7 @@ fn run_app<B: Backend>(terminal: &mut Terminal<B>, app: &mut App) -> Result<bool
                     return Ok(true);
                 }
                 let navigation_action = NavigationAction::from(key);
-                app.navigate(navigation_action);
+                app.navigate(navigation_action)?;
             }
         }
     }
