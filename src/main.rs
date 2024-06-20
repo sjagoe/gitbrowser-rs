@@ -10,7 +10,7 @@ mod errors;
 mod tui;
 mod app;
 mod ui;
-mod display;
+mod traits;
 use crate::{
     app::{App},
     ui::ui,

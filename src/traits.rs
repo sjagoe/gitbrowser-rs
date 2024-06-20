@@ -1,14 +1,29 @@
-use git2::{Repository, ObjectType, TreeEntry};
+use git2::{Repository, Object, ObjectType, TreeEntry};
 
 use ratatui::{
     prelude::Modifier,
     style::{Color, Style},
+    layout::Rect,
+    widgets::Block,
+    Frame,
 };
 
 pub trait Display {
     fn display_kind<'repo>(&self, repo: &'repo Repository) -> Option<(String, Style)>;
 
     fn display_name(&self, selected: bool) -> (String, Style);
+}
+
+pub trait Navigable<'repo> {
+    fn next_selection(&mut self);
+    fn previous_selection(&mut self);
+    fn select(&self) -> (Object<'repo>, String);
+}
+
+pub trait Drawable<'repo> {
+    fn draw(&self, f: &mut Frame, area: Rect, content_block: Block, reserved_rows: u16);
+
+    fn title(&self) -> String;
 }
 
 impl<'tree> Display for TreeEntry<'tree> {
