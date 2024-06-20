@@ -39,15 +39,14 @@ impl<'tree> Display for TreeEntry<'tree> {
                 ObjectType::Blob => {
                     let object = self.to_object(repo).ok()?;
                     let blob = object.peel_to_blob().ok()?;
-                    let name = if blob.is_binary() {
+                    if blob.is_binary() {
                         return Some((
                             "binary".to_string(),
                             Style::default().fg(Color::Red).add_modifier(Modifier::DIM),
                         ));
                     } else {
                         "blob"
-                    };
-                    name
+                    }
                 }
                 _ => "unknown",
             };
@@ -56,10 +55,10 @@ impl<'tree> Display for TreeEntry<'tree> {
                 Style::default().fg(Color::Gray).add_modifier(Modifier::DIM),
             ));
         }
-        return Some((
+        Some((
             "unknown".to_string(),
             Style::default().fg(Color::Red).add_modifier(Modifier::BOLD),
-        ));
+        ))
     }
 
     fn display_name(&self, selected: bool) -> (String, Style) {
@@ -81,15 +80,15 @@ impl<'tree> Display for TreeEntry<'tree> {
                 match kind {
                     ObjectType::Tree => return (format!("{}/", name), style),
                     ObjectType::Blob => {
-                        return (format!("{}", name), style);
+                        return (name.to_string(), style);
                     }
                     _ => {}
                 }
             }
         }
-        return (
+        (
             "unknown".into(),
             Style::default().fg(Color::Red).add_modifier(Modifier::BOLD),
-        );
+        )
     }
 }
