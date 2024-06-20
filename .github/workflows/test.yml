@@ -27,8 +27,16 @@ jobs:
   cargo-build:
     name: Build with cargo
     runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        toolchain:
+          - stable
+          - beta
+          - nightly
     steps:
       - name: Checkout
         uses: actions/checkout@v4
-      - run: rustup update stable && rustup default stable
+      - run: rustup update "$TOOLCHAIN" && rustup default "$TOOLCHAIN"
+        env:
+          TOOLCHAIN: ${{ matrix.toolchain }}
       - run: cargo build --verbose
