@@ -145,15 +145,19 @@ impl<'repo> App<'repo> {
             .style(Style::default())
             .title(title);
 
-        let page: Box<&dyn Drawable> = if let Some(p) = &self.blob_pager {
-            Box::new(p)
-        } else if let Some(p) = self.tree_pages.last() {
-            Box::new(p)
-        } else {
-            Box::new(&self.refs_page)
-        };
+        if let Some(page) = match self.mode.last() {
+            Some(AppMode::BrowseRefs) => Some(Box::<&dyn Drawable>::new(&self.refs_page)),
+            Some(AppMode::BrowseTrees) => {
+                Some(Box::<&dyn Drawable>::new(self.tree_pages.last().expect("No tree browsing page in tree mode")))
+            }
+            Some(AppMode::ViewBlob) => {
+                Some(Box::<&dyn Drawable>::new(self.blob_pager.as_ref().expect("No blob browser page in blob mode")))
+            }
+            _ => None,
+        } {
+            page.draw(f, area, content_block, reserved_rows);
+        }
 
-        page.draw(f, area, content_block, reserved_rows);
         if let Some(error) = self.active_error {
             self.display_error(f, &error)
         }
