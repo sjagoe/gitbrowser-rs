@@ -39,6 +39,12 @@ trait Navigable<'repo> {
     fn select(&self) -> (Object<'repo>, String);
 }
 
+trait Drawable<'repo> {
+    fn draw(&self, f: &mut Frame, area: Rect, content_block: Block, reserved_rows: u16);
+
+    fn title(&self) -> String;
+}
+
 impl<'repo> TreePage<'repo> {
     pub fn new(repo: &'repo Repository, tree_object: Object<'repo>, name: String) -> TreePage<'repo> {
         TreePage {
@@ -49,7 +55,20 @@ impl<'repo> TreePage<'repo> {
         }
     }
 
-    pub fn draw(&self, f: &mut Frame, area: Rect, content_block: Block, reserved_rows: u16) {
+    fn len(&self) -> usize {
+        match self.tree_object.peel_to_tree() {
+            Ok(tree) => {
+                return tree.len();
+            }
+            Err(_) => {
+                return 0;
+            }
+        }
+    }
+}
+
+impl<'repo> Drawable<'repo> for TreePage<'repo> {
+    fn draw(&self, f: &mut Frame, area: Rect, content_block: Block, reserved_rows: u16) {
         match self.tree_object.peel_to_tree() {
             Ok(tree) => {
                 let mut list_items = Vec::<ListItem>::new();
@@ -79,19 +98,8 @@ impl<'repo> TreePage<'repo> {
         }
     }
 
-    pub fn title(&self) -> String {
+    fn title(&self) -> String {
         return format!("{}", self.name);
-    }
-
-    fn len(&self) -> usize {
-        match self.tree_object.peel_to_tree() {
-            Ok(tree) => {
-                return tree.len();
-            }
-            Err(_) => {
-                return 0;
-            }
-        }
     }
 }
 
@@ -158,8 +166,10 @@ impl<'repo> RefsPage<'repo> {
         };
         return refs.names().map(|refname| refname.unwrap().to_string()).collect();
     }
+}
 
-    pub fn draw(&self, f: &mut Frame, area: Rect, content_block: Block, reserved_rows: u16) {
+impl<'repo> Drawable<'repo> for RefsPage<'repo> {
+    fn draw(&self, f: &mut Frame, area: Rect, content_block: Block, reserved_rows: u16) {
         let mut list_items = Vec::<ListItem>::new();
         let items = self.items();
 
@@ -189,7 +199,7 @@ impl<'repo> RefsPage<'repo> {
         f.render_widget(content, area);
     }
 
-    pub fn title(&self) -> String {
+    fn title(&self) -> String {
         if let Some(path) = self.repo.path().parent() {
             if let Some(name) = path.file_name() {
                 return format!("{}", name.to_string_lossy());
@@ -269,11 +279,13 @@ impl<'repo> App<'repo> {
             .style(Style::default())
             .title(title);
 
-        if let Some(page) = self.tree_pages.last() {
-            page.draw(f, area, content_block, reserved_rows);
+        let page: Box<&dyn Drawable> = if let Some(p) = self.tree_pages.last() {
+            Box::new(p)
         } else {
-            self.refs_page.draw(f, area, content_block, reserved_rows);
-        }
+            Box::new(&self.refs_page)
+        };
+
+        page.draw(f, area, content_block, reserved_rows);
     }
 
     pub fn next_selection(&mut self) {
