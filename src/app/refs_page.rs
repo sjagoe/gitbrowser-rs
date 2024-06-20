@@ -39,7 +39,7 @@ impl<'repo> RefsPage<'repo> {
         };
         return refs
             .names()
-            .map(|refname| refname.unwrap().to_string())
+            .map(|refname| refname.expect("Couldn't get refname").to_string())
             .collect();
     }
 }
