@@ -21,13 +21,16 @@ use color_eyre::{
 };
 
 use clap::Parser;
-use git2::Repository;
+use git2::{Object, Repository};
 
 #[derive(Parser, Debug)]
 #[command(version, about, long_about = None)]
 struct Args {
     #[arg(short, long)]
     repository: Option<String>,
+
+    #[arg(short, long)]
+    commit_id: Option<String>,
 }
 
 fn main() -> Result<()> {
@@ -44,8 +47,20 @@ fn main() -> Result<()> {
         Err(e) => panic!("failed to open: {}", e),
     };
 
+    let commit: Option<Object> = match args.commit_id {
+        Some(commit_id) => {
+            match repo.revparse_single(&commit_id) {
+                Ok(object) => {
+                    Some(object)
+                },
+                Err(e) => panic!("Failed to get commit {}", e),
+            }
+        },
+        _ => None,
+    };
+
     let mut terminal = tui::init()?;
-    let mut app = App::new(&repo);
+    let mut app = App::new(&repo, commit);
     run_app(&mut terminal, &mut app)?;
     tui::restore()?;
     Ok(())

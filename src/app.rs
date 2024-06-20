@@ -1,4 +1,4 @@
-use git2::{Commit, Repository, ObjectType};
+use git2::{Commit, Repository, Object, ObjectType};
 
 use ratatui::{
     prelude::Modifier,
@@ -25,6 +25,11 @@ use crate::app::{
     tree_page::TreePage,
 };
 
+enum AppMode {
+    ByRef,
+    ByCommit,
+}
+
 pub struct App<'repo> {
     pub search_input: String,
     repo: &'repo Repository,
@@ -32,18 +37,44 @@ pub struct App<'repo> {
     refs_page: RefsPage<'repo>,
     tree_pages: Vec<TreePage<'repo>>,
     blob_pager: Option<BlobPager<'repo>>,
+    mode: AppMode,
 }
 
 impl<'repo> App<'repo> {
-    pub fn new(repo: &'repo Repository) -> App<'repo> {
-        App {
+    pub fn new(repo: &'repo Repository, commit_object: Option<Object<'repo>>) -> App<'repo> {
+        let mut tree_pages: Vec<TreePage<'repo>> = Vec::new();
+        if let Some(object) = &commit_object {
+            match object.peel_to_commit() {
+                Ok(commit) => {
+                    tree_pages.push(
+                        TreePage::new(
+                            repo,
+                            object.clone(),
+                            "".to_string(),
+                        ),
+                    );
+                    return App {
+                        search_input: String::new(),
+                        repo: repo,
+                        refs_page: RefsPage::new(repo),
+                        commit: Some(commit.clone()),
+                        tree_pages: tree_pages,
+                        blob_pager: None,
+                        mode: AppMode::ByCommit,
+                    };
+                }
+                Err(e) => panic!("Failed to get commit {}", e),
+            }
+        }
+        return App {
             search_input: String::new(),
             repo: repo,
             refs_page: RefsPage::new(repo),
             commit: None,
-            tree_pages: vec![],
+            tree_pages: tree_pages,
             blob_pager: None,
-        }
+            mode: AppMode::ByRef,
+        };
     }
 
     pub fn set_height(&mut self, h: u16) {
@@ -200,7 +231,16 @@ impl<'repo> App<'repo> {
 
     pub fn back(&mut self) {
         if self.blob_pager.is_none() {
-            self.tree_pages.pop();
+            match self.mode {
+                AppMode::ByRef => {
+                    self.tree_pages.pop();
+                }
+                AppMode::ByCommit => {
+                    if self.tree_pages.len() > 1 {
+                        self.tree_pages.pop();
+                    }
+                }
+            }
             if self.tree_pages.len() == 0 {
                 self.commit = None;
             }
