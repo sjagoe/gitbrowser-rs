@@ -15,6 +15,8 @@ pub trait Display {
 }
 
 pub trait Navigable<'repo> {
+    fn home(&mut self, page_size: u16);
+    fn end(&mut self, page_size: u16);
     fn pagedown(&mut self, page_size: u16);
     fn pageup(&mut self, page_size: u16);
     fn next_selection(&mut self);

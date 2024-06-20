@@ -133,6 +133,28 @@ impl<'repo> App<'repo> {
         page.draw(f, area, content_block, reserved_rows);
     }
 
+    pub fn home(&mut self) {
+        let page: Box<&mut dyn Navigable> = if let Some(pager) = &mut self.blob_pager {
+            Box::new(pager)
+        } else if let Some(p) = self.tree_pages.last_mut() {
+            Box::new(p)
+        } else {
+            Box::new(&mut self.refs_page)
+        };
+        page.home(self.height);
+    }
+
+    pub fn end(&mut self) {
+        let page: Box<&mut dyn Navigable> = if let Some(pager) = &mut self.blob_pager {
+            Box::new(pager)
+        } else if let Some(p) = self.tree_pages.last_mut() {
+            Box::new(p)
+        } else {
+            Box::new(&mut self.refs_page)
+        };
+        page.end(self.height);
+    }
+
     pub fn pagedown(&mut self) {
         let page: Box<&mut dyn Navigable> = if let Some(pager) = &mut self.blob_pager {
             Box::new(pager)

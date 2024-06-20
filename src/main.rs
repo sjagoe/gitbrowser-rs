@@ -87,6 +87,15 @@ fn run_app<B: Backend>(terminal: &mut Terminal<B>, app: &mut App) -> Result<bool
                         }
                     }
                     Event::Key(KeyEvent {
+                        code: KeyCode::Up,
+                        modifiers,
+                        ..
+                    }) => {
+                        if modifiers == KeyModifiers::empty() {
+                            app.previous_selection();
+                        }
+                    }
+                    Event::Key(KeyEvent {
                         code: KeyCode::PageDown,
                         modifiers,
                         ..
@@ -105,12 +114,21 @@ fn run_app<B: Backend>(terminal: &mut Terminal<B>, app: &mut App) -> Result<bool
                         }
                     }
                     Event::Key(KeyEvent {
-                        code: KeyCode::Up,
+                        code: KeyCode::Home,
                         modifiers,
                         ..
                     }) => {
                         if modifiers == KeyModifiers::empty() {
-                            app.previous_selection();
+                            app.home();
+                        }
+                    }
+                    Event::Key(KeyEvent {
+                        code: KeyCode::End,
+                        modifiers,
+                        ..
+                    }) => {
+                        if modifiers == KeyModifiers::empty() {
+                            app.end();
                         }
                     }
                     Event::Key(KeyEvent {

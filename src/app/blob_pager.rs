@@ -65,6 +65,19 @@ impl<'repo> Drawable<'repo> for BlobPager<'repo> {
 }
 
 impl<'repo> Navigable<'repo> for BlobPager<'repo> {
+    fn home(&mut self, _page_size: u16) {
+        self.top = 0;
+    }
+
+    fn end(&mut self, page_size: u16) {
+        let h: usize = page_size.into();
+        self.top = if self.lines.len() > 0 {
+            self.lines.len() - h
+        } else {
+            0
+        };
+    }
+
     fn pagedown(&mut self, page_size: u16) {
         let h: usize = page_size.into();
         let top = self.top + h;
