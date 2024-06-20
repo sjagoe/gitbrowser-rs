@@ -1,16 +1,14 @@
-use git2::{Repository, Object};
+use git2::{Object, Repository};
 
 use ratatui::{
-    text::{Line, Span},
     layout::Rect,
-    widgets::{
-        Block, List, ListItem,
-    },
+    text::{Line, Span},
+    widgets::{Block, List, ListItem},
     Frame,
 };
 
-use crate::traits::{Display, Drawable, Navigable};
 use crate::app::pagination::pagination;
+use crate::traits::{Display, Drawable, Navigable};
 
 pub struct TreePage<'repo> {
     repo: &'repo Repository,
@@ -20,7 +18,11 @@ pub struct TreePage<'repo> {
 }
 
 impl<'repo> TreePage<'repo> {
-    pub fn new(repo: &'repo Repository, tree_object: Object<'repo>, name: String) -> TreePage<'repo> {
+    pub fn new(
+        repo: &'repo Repository,
+        tree_object: Object<'repo>,
+        name: String,
+    ) -> TreePage<'repo> {
         TreePage {
             selected_index: 0,
             repo: repo,
@@ -49,7 +51,8 @@ impl<'repo> Drawable<'repo> for TreePage<'repo> {
                 let iter = tree.iter();
 
                 let visible = f.size().height - reserved_rows;
-                let (_page, _pages, page_start_index) = pagination(tree.len(), visible.into(), self.selected_index);
+                let (_page, _pages, page_start_index) =
+                    pagination(tree.len(), visible.into(), self.selected_index);
 
                 let display_items = iter.skip(page_start_index).take(visible.into());
 

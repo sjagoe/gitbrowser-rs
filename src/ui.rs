@@ -2,14 +2,11 @@ use ratatui::{
     layout::{Constraint, Direction, Layout},
     style::{Color, Style},
     text::{Line, Span},
-    widgets::{
-        Block, Borders, Paragraph,
-    },
+    widgets::{Block, Borders, Paragraph},
     Frame,
 };
 
-use crate::app::{App};
-
+use crate::app::App;
 
 pub fn ui(f: &mut Frame, app: &App, footer_min: u16, box_border: u16) {
     // Create the layout sections.
@@ -23,10 +20,7 @@ pub fn ui(f: &mut Frame, app: &App, footer_min: u16, box_border: u16) {
 
     app.draw(f, chunks[0], footer_min + box_border);
 
-    let current_keys_hint = Span::styled(
-        "(^x) exit | (^g) back",
-        Style::default().fg(Color::Red),
-    );
+    let current_keys_hint = Span::styled("(^x) exit | (^g) back", Style::default().fg(Color::Red));
 
     let key_notes_footer =
         Paragraph::new(Line::from(current_keys_hint)).block(Block::default().borders(Borders::ALL));

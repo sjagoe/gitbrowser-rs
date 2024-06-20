@@ -1,9 +1,9 @@
-use git2::{Repository, Object, ObjectType, TreeEntry};
+use git2::{Object, ObjectType, Repository, TreeEntry};
 
 use ratatui::{
+    layout::Rect,
     prelude::Modifier,
     style::{Color, Style},
-    layout::Rect,
     widgets::Block,
     Frame,
 };
@@ -40,9 +40,7 @@ impl<'tree> Display for TreeEntry<'tree> {
                     let name = if blob.is_binary() {
                         return Some((
                             "binary".to_string(),
-                            Style::default()
-                                .fg(Color::Red)
-                                .add_modifier(Modifier::DIM),
+                            Style::default().fg(Color::Red).add_modifier(Modifier::DIM),
                         ));
                     } else {
                         "blob"
@@ -53,9 +51,7 @@ impl<'tree> Display for TreeEntry<'tree> {
             };
             return Some((
                 value.to_string(),
-                Style::default()
-                    .fg(Color::Gray)
-                    .add_modifier(Modifier::DIM),
+                Style::default().fg(Color::Gray).add_modifier(Modifier::DIM),
             ));
         }
         return Some((
@@ -81,9 +77,7 @@ impl<'tree> Display for TreeEntry<'tree> {
             let style = Style::default().fg(fg).bg(bg).add_modifier(mods);
             if let Some(name) = self.name() {
                 match kind {
-                    ObjectType::Tree => {
-                        return (format!("{}/", name), style)
-                    }
+                    ObjectType::Tree => return (format!("{}/", name), style),
                     ObjectType::Blob => {
                         return (format!("{}", name), style);
                     }
@@ -91,6 +85,9 @@ impl<'tree> Display for TreeEntry<'tree> {
                 }
             }
         }
-        return ("unknown".into(), Style::default().fg(Color::Red).add_modifier(Modifier::BOLD));
-   }
+        return (
+            "unknown".into(),
+            Style::default().fg(Color::Red).add_modifier(Modifier::BOLD),
+        );
+    }
 }

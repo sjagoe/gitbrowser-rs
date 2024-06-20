@@ -1,13 +1,11 @@
-use git2::{Repository, Object};
+use git2::{Object, Repository};
 
 use ratatui::{
+    layout::Rect,
     prelude::Modifier,
     style::{Color, Style},
     text::{Line, Span},
-    layout::Rect,
-    widgets::{
-        Block, List, ListItem,
-    },
+    widgets::{Block, List, ListItem},
     Frame,
 };
 
@@ -40,7 +38,10 @@ impl<'repo> RefsPage<'repo> {
             Ok(r) => r,
             Err(_e) => return vec![],
         };
-        return refs.names().map(|refname| refname.unwrap().to_string()).collect();
+        return refs
+            .names()
+            .map(|refname| refname.unwrap().to_string())
+            .collect();
     }
 }
 
@@ -50,14 +51,15 @@ impl<'repo> Drawable<'repo> for RefsPage<'repo> {
         let items = self.items();
 
         let visible = f.size().height - reserved_rows;
-        let (_page, _pages, page_start_index) = pagination(items.len(), visible.into(), self.selected_index);
+        let (_page, _pages, page_start_index) =
+            pagination(items.len(), visible.into(), self.selected_index);
 
         let end_slice = if page_start_index + usize::from(visible) >= items.len() {
             items.len()
         } else {
             page_start_index + usize::from(visible)
         };
-        let display_items = &items[page_start_index .. end_slice];
+        let display_items = &items[page_start_index..end_slice];
 
         for (pos, item) in display_items.iter().enumerate() {
             let style = if pos + page_start_index == self.selected_index {
@@ -66,7 +68,10 @@ impl<'repo> Drawable<'repo> for RefsPage<'repo> {
                 Style::default().fg(Color::Gray)
             };
             let line = Line::from(vec![
-                Span::styled(format!("{:10}", "ref"), Style::default().add_modifier(Modifier::DIM)),
+                Span::styled(
+                    format!("{:10}", "ref"),
+                    Style::default().add_modifier(Modifier::DIM),
+                ),
                 Span::styled(item, style),
             ]);
             list_items.push(ListItem::new(line));

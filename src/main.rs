@@ -1,24 +1,14 @@
-use crossterm::{
-    event::{self, Event, KeyCode, KeyEvent, KeyEventKind, KeyModifiers},
-};
-use ratatui::{
-    backend::{Backend},
-    Terminal,
-};
+use crossterm::event::{self, Event, KeyCode, KeyEvent, KeyEventKind, KeyModifiers};
+use ratatui::{backend::Backend, Terminal};
 
-mod errors;
-mod tui;
 mod app;
-mod ui;
+mod errors;
 mod traits;
-use crate::{
-    app::{App},
-    ui::ui,
-};
+mod tui;
+mod ui;
+use crate::{app::App, ui::ui};
 
-use color_eyre::{
-    Result,
-};
+use color_eyre::Result;
 
 use clap::Parser;
 use git2::{Object, Repository};
@@ -48,13 +38,9 @@ fn main() -> Result<()> {
     };
 
     let commit: Option<Object> = match args.commit_id {
-        Some(commit_id) => {
-            match repo.revparse_single(&commit_id) {
-                Ok(object) => {
-                    Some(object)
-                },
-                Err(e) => panic!("Failed to get commit {}", e),
-            }
+        Some(commit_id) => match repo.revparse_single(&commit_id) {
+            Ok(object) => Some(object),
+            Err(e) => panic!("Failed to get commit {}", e),
         },
         _ => None,
     };
@@ -95,7 +81,7 @@ fn run_app<B: Backend>(terminal: &mut Terminal<B>, app: &mut App) -> Result<bool
                         code: KeyCode::Down,
                         modifiers,
                         ..
-                    }) =>  {
+                    }) => {
                         if modifiers == KeyModifiers::empty() {
                             app.next_selection();
                         }
@@ -104,7 +90,7 @@ fn run_app<B: Backend>(terminal: &mut Terminal<B>, app: &mut App) -> Result<bool
                         code: KeyCode::PageDown,
                         modifiers,
                         ..
-                    }) =>  {
+                    }) => {
                         if modifiers == KeyModifiers::empty() {
                             app.pagedown();
                         }
@@ -113,7 +99,7 @@ fn run_app<B: Backend>(terminal: &mut Terminal<B>, app: &mut App) -> Result<bool
                         code: KeyCode::PageUp,
                         modifiers,
                         ..
-                    }) =>  {
+                    }) => {
                         if modifiers == KeyModifiers::empty() {
                             app.pageup();
                         }
@@ -122,7 +108,7 @@ fn run_app<B: Backend>(terminal: &mut Terminal<B>, app: &mut App) -> Result<bool
                         code: KeyCode::Up,
                         modifiers,
                         ..
-                    }) =>  {
+                    }) => {
                         if modifiers == KeyModifiers::empty() {
                             app.previous_selection();
                         }
@@ -131,7 +117,7 @@ fn run_app<B: Backend>(terminal: &mut Terminal<B>, app: &mut App) -> Result<bool
                         code: KeyCode::Enter,
                         modifiers,
                         ..
-                    }) =>  {
+                    }) => {
                         if modifiers == KeyModifiers::empty() {
                             app.select();
                         }

@@ -1,4 +1,8 @@
-pub fn pagination(item_count: usize, visible_item_count: usize, selected_index: usize) -> (usize, usize, usize) {
+pub fn pagination(
+    item_count: usize,
+    visible_item_count: usize,
+    selected_index: usize,
+) -> (usize, usize, usize) {
     let page_start_index = selected_index - (selected_index % visible_item_count);
     let pages = if item_count % visible_item_count > 0 {
         item_count / visible_item_count + 1

@@ -1,12 +1,9 @@
 use git2::{Blob, Object, Repository};
 
 use ratatui::{
-    prelude::Line,
     layout::Rect,
-    widgets::{
-        Block,
-        Paragraph,
-    },
+    prelude::Line,
+    widgets::{Block, Paragraph},
     Frame,
 };
 
@@ -27,7 +24,10 @@ impl<'repo> BlobPager<'repo> {
             Ok(v) => v,
             Err(e) => panic!("unable to decode utf8 {}", e),
         };
-        let lines = content.lines().map(|line| Line::from(line.to_string())).collect();
+        let lines = content
+            .lines()
+            .map(|line| Line::from(line.to_string()))
+            .collect();
         BlobPager {
             top: 0,
             repo: repo,
@@ -60,10 +60,8 @@ impl<'repo> Drawable<'repo> for BlobPager<'repo> {
         } else {
             self.top + viewport
         };
-        let lines = self.lines[self.top .. bottom].to_vec();
-        let content = Paragraph::new(
-            lines.into_iter().collect::<Vec<Line>>()
-        ).block(content_block);
+        let lines = self.lines[self.top..bottom].to_vec();
+        let content = Paragraph::new(lines.into_iter().collect::<Vec<Line>>()).block(content_block);
         f.render_widget(content, area);
     }
 

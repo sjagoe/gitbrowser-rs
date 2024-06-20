@@ -1,10 +1,10 @@
-use git2::{Commit, Repository, Object, ObjectType};
+use git2::{Commit, Object, ObjectType, Repository};
 
 use ratatui::{
+    layout::Rect,
     prelude::Modifier,
     style::{Color, Style},
-    text::{Span},
-    layout::Rect,
+    text::Span,
     widgets::{
         block::{Padding, Title},
         Block, Borders,
@@ -19,11 +19,7 @@ mod pagination;
 mod refs_page;
 mod tree_page;
 
-use crate::app::{
-    blob_pager::BlobPager,
-    refs_page::RefsPage,
-    tree_page::TreePage,
-};
+use crate::app::{blob_pager::BlobPager, refs_page::RefsPage, tree_page::TreePage};
 
 enum AppMode {
     ByRef,
@@ -46,13 +42,7 @@ impl<'repo> App<'repo> {
         if let Some(object) = &commit_object {
             match object.peel_to_commit() {
                 Ok(commit) => {
-                    tree_pages.push(
-                        TreePage::new(
-                            repo,
-                            object.clone(),
-                            "".to_string(),
-                        ),
-                    );
+                    tree_pages.push(TreePage::new(repo, object.clone(), "".to_string()));
                     return App {
                         search_input: String::new(),
                         repo: repo,
@@ -84,9 +74,7 @@ impl<'repo> App<'repo> {
     }
 
     pub fn title(&self) -> Vec<Span> {
-        let mut parts = vec![
-            Span::from(" "),
-        ];
+        let mut parts = vec![Span::from(" ")];
 
         let mut repo_name = vec![self.refs_page.title()];
         if let Some(commit) = &self.commit {
@@ -96,28 +84,28 @@ impl<'repo> App<'repo> {
             repo_name.push(": ".to_string());
         }
 
-        parts.push(
-            Span::styled(
-                repo_name.join(""),
-                Style::default().fg(Color::Green).add_modifier(Modifier::BOLD)),
-        );
+        parts.push(Span::styled(
+            repo_name.join(""),
+            Style::default()
+                .fg(Color::Green)
+                .add_modifier(Modifier::BOLD),
+        ));
 
         for (ix, page) in self.tree_pages.iter().enumerate() {
             let sep = if ix > 0 { "/" } else { "" };
-            parts.push(
-                Span::styled(
-                    format!("{}{}", page.title(), sep),
-                    Style::default().fg(Color::Blue).add_modifier(Modifier::BOLD)),
-            );
+            parts.push(Span::styled(
+                format!("{}{}", page.title(), sep),
+                Style::default()
+                    .fg(Color::Blue)
+                    .add_modifier(Modifier::BOLD),
+            ));
         }
 
         if let Some(pager) = &self.blob_pager {
-            parts.push(
-                Span::styled(
-                    pager.title(),
-                    Style::default().fg(Color::Gray),
-                )
-            );
+            parts.push(Span::styled(
+                pager.title(),
+                Style::default().fg(Color::Gray),
+            ));
         }
 
         parts.push(Span::from(" "));
@@ -197,32 +185,22 @@ impl<'repo> App<'repo> {
             if let Some((object, name)) = page.select() {
                 match object.kind() {
                     Some(ObjectType::Blob) => {
-                        self.blob_pager = Some(BlobPager::from_object(self.repo, object, page.selected_item()));
-                    },
+                        self.blob_pager = Some(BlobPager::from_object(
+                            self.repo,
+                            object,
+                            page.selected_item(),
+                        ));
+                    }
                     Some(ObjectType::Tree) => {
-                        self.tree_pages.push(
-                            TreePage::new(
-                                self.repo,
-                                object,
-                                name,
-                            ),
-                        );
+                        self.tree_pages.push(TreePage::new(self.repo, object, name));
                     }
-                    Some(ObjectType::Commit) => {
-                        match object.peel_to_commit() {
-                            Ok(commit) => {
-                                self.commit = Some(commit);
-                                self.tree_pages.push(
-                                    TreePage::new(
-                                        self.repo,
-                                        object,
-                                        name,
-                                    ),
-                                );
-                            }
-                            Err(e) => panic!("Unable to peel commit? {}", e)
+                    Some(ObjectType::Commit) => match object.peel_to_commit() {
+                        Ok(commit) => {
+                            self.commit = Some(commit);
+                            self.tree_pages.push(TreePage::new(self.repo, object, name));
                         }
-                    }
+                        Err(e) => panic!("Unable to peel commit? {}", e),
+                    },
                     _ => {}
                 }
             }
