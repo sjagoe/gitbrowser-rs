@@ -96,7 +96,36 @@ impl<'repo> TreePage<'repo> {
         }
     }
 
-    pub fn select(&mut self) {}
+    pub fn select(&mut self) -> TreePage<'repo> {
+        match self.tree_object.peel_to_tree() {
+            Ok(tree) => {
+                if let Some(entry) = tree.get(self.selected_index) {
+                    match entry.to_object(self.repo) {
+                        Ok(object) => {
+                            if let Some(name) = entry.name() {
+                                let page = TreePage::new(
+                                    self.repo,
+                                    object,
+                                    name.into(),
+                                );
+                                return page;
+                            } else {
+                                panic!("Failed to get tree entry name");
+                            }
+                        }
+                        Err(e) => {
+                            panic!("Failed to get object from entry {}", e);
+                        }
+                    }
+                } else {
+                    panic!("no tree entry?!?");
+                };
+            }
+            Err(e) => {
+                panic!("no tree?!? {}", e);
+            }
+        }
+    }
 }
 
 impl<'repo> RefsPage<'repo> {
@@ -250,7 +279,8 @@ impl<'repo> App<'repo> {
 
     pub fn select(&mut self) {
         if let Some(page) = self.tree_pages.last_mut() {
-            page.select();
+            let new_page = page.select();
+            self.tree_pages.push(new_page);
         } else {
             let new_page = self.refs_page.select();
             self.tree_pages.push(new_page);
