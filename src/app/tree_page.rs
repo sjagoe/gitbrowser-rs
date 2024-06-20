@@ -82,8 +82,24 @@ impl<'repo> Drawable<'repo> for TreePage<'repo> {
 }
 
 impl<'repo> Navigable<'repo> for TreePage<'repo> {
-    fn pagedown(&mut self, _page_size: u16) {}
-    fn pageup(&mut self, _page_size: u16) {}
+    fn pagedown(&mut self, page_size: u16) {
+        let h: usize = page_size.into();
+        let selected_index = self.selected_index + h;
+        self.selected_index = if selected_index > self.len() {
+            self.len() - 1
+        } else {
+            selected_index
+        }
+    }
+
+    fn pageup(&mut self, page_size: u16) {
+        let h: usize = page_size.into();
+        if self.selected_index < h {
+            self.selected_index = 0;
+        } else {
+            self.selected_index = self.selected_index - h;
+        }
+    }
 
     fn next_selection(&mut self) {
         if self.selected_index < self.len() - 1 {
