@@ -1,4 +1,4 @@
-use crossterm::event::{KeyEvent, KeyCode, KeyModifiers};
+use crossterm::event::{KeyCode, KeyEvent, KeyModifiers};
 
 pub enum NavigationAction {
     Select,
@@ -22,7 +22,7 @@ impl From<KeyEvent> for NavigationAction {
                 } else {
                     NavigationAction::Invalid
                 }
-            },
+            }
             (KeyCode::Home, 0) => NavigationAction::Home,
             (KeyCode::End, 0) => NavigationAction::End,
             (KeyCode::PageUp, 0) => NavigationAction::PageUp,

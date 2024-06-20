@@ -33,12 +33,8 @@ impl<'repo> TreePage<'repo> {
 
     fn len(&self) -> usize {
         match self.tree_object.peel_to_tree() {
-            Ok(tree) => {
-                tree.len()
-            }
-            Err(_) => {
-                0
-            }
+            Ok(tree) => tree.len(),
+            Err(_) => 0,
         }
     }
 }

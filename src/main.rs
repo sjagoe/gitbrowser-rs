@@ -7,7 +7,7 @@ mod traits;
 mod tui;
 mod ui;
 use crate::{
-    app::{App, navigation::NavigationAction},
+    app::{navigation::NavigationAction, App},
     ui::ui,
 };
 

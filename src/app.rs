@@ -15,12 +15,14 @@ use ratatui::{
 use crate::traits::{Drawable, Navigable};
 
 mod blob_pager;
+pub mod navigation;
 mod pagination;
 mod refs_page;
 mod tree_page;
-pub mod navigation;
 
-use crate::app::{blob_pager::BlobPager, refs_page::RefsPage, tree_page::TreePage, navigation::NavigationAction};
+use crate::app::{
+    blob_pager::BlobPager, navigation::NavigationAction, refs_page::RefsPage, tree_page::TreePage,
+};
 
 enum AppMode {
     ByRef,
@@ -151,7 +153,7 @@ impl<'repo> App<'repo> {
             NavigationAction::PageDown => page.pagedown(self.height),
             NavigationAction::NextSelection => page.next_selection(),
             NavigationAction::PreviousSelection => page.previous_selection(),
-            _ => {},
+            _ => {}
         }
     }
 
