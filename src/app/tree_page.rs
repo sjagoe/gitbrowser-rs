@@ -34,10 +34,10 @@ impl<'repo> TreePage<'repo> {
     fn len(&self) -> usize {
         match self.tree_object.peel_to_tree() {
             Ok(tree) => {
-                return tree.len();
+                tree.len()
             }
             Err(_) => {
-                return 0;
+                0
             }
         }
     }
@@ -77,7 +77,7 @@ impl<'repo> Drawable<'repo> for TreePage<'repo> {
     }
 
     fn title(&self) -> String {
-        return format!("{}", self.name);
+        self.name.to_string()
     }
 }
 
@@ -105,7 +105,7 @@ impl<'repo> Navigable<'repo> for TreePage<'repo> {
         if self.selected_index < h {
             self.selected_index = 0;
         } else {
-            self.selected_index = self.selected_index - h;
+            self.selected_index -= h;
         }
     }
 
@@ -132,7 +132,7 @@ impl<'repo> Navigable<'repo> for TreePage<'repo> {
                     match entry.to_object(self.repo) {
                         Ok(object) => {
                             if let Some(name) = entry.name() {
-                                return Some((object, name.into()));
+                                Some((object, name.into()))
                             } else {
                                 panic!("Failed to get tree entry name");
                             }
@@ -143,7 +143,7 @@ impl<'repo> Navigable<'repo> for TreePage<'repo> {
                     }
                 } else {
                     panic!("no tree entry?!?");
-                };
+                }
             }
             Err(e) => {
                 panic!("no tree?!? {}", e);
@@ -156,13 +156,13 @@ impl<'repo> Navigable<'repo> for TreePage<'repo> {
             Ok(tree) => {
                 if let Some(entry) = tree.get(self.selected_index) {
                     if let Some(name) = entry.name() {
-                        return name.to_string();
+                        name.to_string()
                     } else {
                         panic!("Failed to get tree entry name");
                     }
                 } else {
                     panic!("no tree entry?!?");
-                };
+                }
             }
             Err(e) => {
                 panic!("no tree?!? {}", e);
