@@ -7,19 +7,19 @@ use ratatui::{
     Frame,
 };
 
-use crate::traits::{Display, Drawable, Navigable};
+use crate::traits::{Drawable, Navigable};
 
 pub struct BlobPager<'repo> {
     top: usize,
-    repo: &'repo Repository,
-    blob: Blob<'repo>,
+    // repo: &'repo Repository,
+    // blob: Blob<'repo>,
     name: String,
     lines: Vec<Line<'repo>>,
     height: u16,
 }
 
 impl<'repo> BlobPager<'repo> {
-    pub fn new(repo: &'repo Repository, blob: Blob<'repo>, name: String) -> BlobPager<'repo> {
+    pub fn new(_repo: &'repo Repository, blob: Blob<'repo>, name: String) -> BlobPager<'repo> {
         let content = match std::str::from_utf8(blob.content()) {
             Ok(v) => v,
             Err(e) => panic!("unable to decode utf8 {}", e),
@@ -30,8 +30,8 @@ impl<'repo> BlobPager<'repo> {
             .collect();
         BlobPager {
             top: 0,
-            repo: repo,
-            blob: blob.clone(),
+            // repo: repo,
+            // blob: blob.clone(),
             name: name,
             lines: lines,
             height: 0,
