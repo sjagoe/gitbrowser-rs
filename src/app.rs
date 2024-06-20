@@ -109,12 +109,16 @@ impl<'repo> Navigable<'repo> for TreePage<'repo> {
     fn next_selection(&mut self) {
         if self.selected_index < self.len() - 1 {
             self.selected_index += 1;
+        } else {
+            self.selected_index = 0;
         }
     }
 
     fn previous_selection(&mut self) {
         if self.selected_index > 0 {
             self.selected_index -= 1;
+        } else {
+            self.selected_index = self.len() - 1;
         }
     }
 
@@ -150,6 +154,13 @@ impl<'repo> RefsPage<'repo> {
         RefsPage {
             repo: repo,
             selected_index: 0,
+        }
+    }
+
+    fn len(&self) -> usize {
+        match self.repo.references() {
+            Ok(refs) => refs.count(),
+            Err(_) => 0,
         }
     }
 
@@ -208,14 +219,18 @@ impl<'repo> Drawable<'repo> for RefsPage<'repo> {
 
 impl<'repo> Navigable<'repo> for RefsPage<'repo> {
     fn next_selection(&mut self) {
-        if self.selected_index < self.items().len() - 1 {
+        if self.selected_index < self.len() - 1 {
             self.selected_index += 1;
+        } else {
+            self.selected_index = 0;
         }
     }
 
     fn previous_selection(&mut self) {
         if self.selected_index > 0 {
             self.selected_index -= 1;
+        } else {
+            self.selected_index = self.len() - 1;
         }
     }
 
