@@ -91,20 +91,30 @@ impl<'repo> App<'repo> {
     pub fn title(&self) -> Vec<Span> {
         let mut parts = vec![Span::from(" ")];
 
-        let mut repo_name = vec![self.refs_page.title()];
-        if let Some(commit) = &self.commit {
-            repo_name.push(format!("@{}", commit.id()));
-        }
-        if self.tree_pages.len() > 1 || self.blob_pager.is_some() {
-            repo_name.push(": ".to_string());
-        }
-
         parts.push(Span::styled(
-            repo_name.join(""),
+            self.refs_page.title(),
             Style::default()
                 .fg(Color::Green)
                 .add_modifier(Modifier::BOLD),
         ));
+
+        if let Some(commit) = &self.commit {
+            parts.push(Span::styled(
+                "@",
+                Style::default().fg(Color::White).add_modifier(Modifier::BOLD),
+            ));
+            parts.push(Span::styled(
+                commit.id().to_string(),
+                Style::default().fg(Color::Yellow).add_modifier(Modifier::BOLD),
+            ));
+        }
+
+        if self.tree_pages.len() > 1 || self.blob_pager.is_some() {
+            parts.push(Span::styled(
+                ": ",
+                Style::default().fg(Color::White).add_modifier(Modifier::BOLD),
+            ));
+        }
 
         for (ix, page) in self.tree_pages.iter().enumerate() {
             let sep = if ix > 0 { "/" } else { "" };
