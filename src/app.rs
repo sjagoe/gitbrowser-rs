@@ -33,8 +33,10 @@ use crate::{
 };
 
 enum AppMode {
-    ByRef,
-    ByCommit,
+    BrowseRefs,
+    BrowseTrees,
+    // ViewBlob,
+    // Error,
 }
 
 pub struct App<'repo> {
@@ -44,44 +46,38 @@ pub struct App<'repo> {
     refs_page: RefsPage<'repo>,
     tree_pages: Vec<TreePage<'repo>>,
     blob_pager: Option<BlobPager>,
-    mode: AppMode,
+    mode: Vec<AppMode>,
     height: u16,
     active_error: Option<GitBrowserError>,
 }
 
 impl<'repo> App<'repo> {
     pub fn new(repo: &'repo Repository, commit_object: Option<Object<'repo>>) -> App<'repo> {
-        let mut tree_pages: Vec<TreePage<'repo>> = Vec::new();
-        if let Some(object) = &commit_object {
-            match object.peel_to_commit() {
-                Ok(commit) => {
-                    tree_pages.push(TreePage::new(repo, object.clone(), "".to_string()));
-                    return App {
-                        search_input: String::new(),
-                        repo,
-                        refs_page: RefsPage::new(repo),
-                        commit: Some(commit.clone()),
-                        tree_pages,
-                        blob_pager: None,
-                        mode: AppMode::ByCommit,
-                        height: 0,
-                        active_error: None,
-                    };
-                }
-                Err(e) => panic!("Failed to get commit {}", e),
-            }
-        }
-        return App {
+        let mut new = App {
             search_input: String::new(),
             repo,
             refs_page: RefsPage::new(repo),
             commit: None,
-            tree_pages,
+            tree_pages: vec![],
             blob_pager: None,
-            mode: AppMode::ByRef,
+            mode: vec![AppMode::BrowseRefs],
             height: 0,
             active_error: None,
         };
+        if let Some(object) = &commit_object {
+            match object.peel_to_commit() {
+                Ok(commit) => {
+                    let mut tree_pages: Vec<TreePage<'repo>> = Vec::new();
+                    tree_pages.push(TreePage::new(repo, object.clone(), "".to_string()));
+                    new.tree_pages = tree_pages;
+                    new.mode = vec![AppMode::BrowseTrees];
+                    new.commit = Some(commit.clone());
+                }
+                Err(e) => panic!("Failed to get commit {}", e),
+            }
+        }
+
+        new
     }
 
     pub fn set_height(&mut self, h: u16) {
@@ -248,13 +244,15 @@ impl<'repo> App<'repo> {
         if self.active_error.is_some() {
             self.active_error = None;
         } else if self.blob_pager.is_none() {
-            match self.mode {
-                AppMode::ByRef => {
-                    self.tree_pages.pop();
-                }
-                AppMode::ByCommit => {
-                    if self.tree_pages.len() > 1 {
+            if let Some(mode) = self.mode.first() {
+                match mode {
+                    AppMode::BrowseRefs => {
                         self.tree_pages.pop();
+                    }
+                    AppMode::BrowseTrees => {
+                        if self.tree_pages.len() > 1 {
+                            self.tree_pages.pop();
+                        }
                     }
                 }
             }
