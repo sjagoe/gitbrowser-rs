@@ -56,8 +56,12 @@ impl<'repo> TreePage<'repo> {
 
                 for (pos, entry) in display_items.enumerate() {
                     let selected = pos + page_start_index == self.selected_index;
+                    let (kind, kind_style) = entry.display_kind();
                     let (value, style) = entry.display_name(selected);
-                    let line = Line::from(Span::styled(value, style));
+                    let line = Line::from(vec![
+                        Span::styled(format!("{:10}", kind), kind_style),
+                        Span::styled(value, style),
+                    ]);
                     list_items.push(ListItem::new(line));
                 }
                 let content = List::new(list_items).block(content_block);
@@ -164,7 +168,11 @@ impl<'repo> RefsPage<'repo> {
             } else {
                 Style::default().fg(Color::Gray)
             };
-            list_items.push(ListItem::new(Line::from(Span::styled(item, style))));
+            let line = Line::from(vec![
+                Span::styled(format!("{:10}", "ref"), Style::default().add_modifier(Modifier::DIM)),
+                Span::styled(item, style),
+            ]);
+            list_items.push(ListItem::new(line));
         }
         let content = List::new(list_items).block(content_block);
         f.render_widget(content, area);

@@ -3,18 +3,17 @@ use git2::{Repository, ObjectType, TreeEntry};
 use ratatui::{
     prelude::Modifier,
     style::{Color, Style},
-    text::{Span},
 };
 
 pub trait Display {
-    fn display_kind(&self) -> Span;
+    fn display_kind(&self) -> (String, Style);
 
     fn display_name(&self, selected: bool) -> (String, Style);
 }
 
 impl Display for Repository {
-    fn display_kind(&self) -> Span {
-        Span::raw("")
+    fn display_kind(&self) -> (String, Style) {
+        return ("".to_string(), Style::default());
     }
 
     fn display_name(&self, _selected: bool) -> (String, Style) {
@@ -35,16 +34,24 @@ impl Display for Repository {
 }
 
 impl<'tree> Display for TreeEntry<'tree> {
-    fn display_kind(&self) -> Span {
+    fn display_kind(&self) -> (String, Style) {
         if let Some(kind) = self.kind() {
             let value = match kind {
                 ObjectType::Tree => "tree",
                 ObjectType::Blob => "blob",
                 _ => "unknown",
             };
-            return Span::styled(value, Style::default().fg(Color::Gray).add_modifier(Modifier::BOLD));
+            return (
+                value.to_string(),
+                Style::default()
+                    .fg(Color::Gray)
+                    .add_modifier(Modifier::DIM),
+            );
         }
-        return Span::styled("unknown", Style::default().fg(Color::Red).add_modifier(Modifier::BOLD));
+        return (
+            "unknown".to_string(),
+            Style::default().fg(Color::Red).add_modifier(Modifier::BOLD),
+        );
     }
 
     fn display_name(&self, selected: bool) -> (String, Style) {
