@@ -2,30 +2,30 @@ use git2::{Blob, Object, Repository};
 
 use ratatui::{
     layout::Rect,
-    prelude::Line,
+    prelude::{Line, Modifier, Span, Style},
     widgets::{Block, Paragraph},
     Frame,
 };
 
 use crate::traits::{Drawable, Navigable};
 
-pub struct BlobPager<'repo> {
+pub struct BlobPager {
     top: usize,
     // repo: &'repo Repository,
     // blob: Blob<'repo>,
     name: String,
-    lines: Vec<Line<'repo>>,
+    lines: Vec<String>,
 }
 
-impl<'repo> BlobPager<'repo> {
-    pub fn new(_repo: &'repo Repository, blob: Blob<'repo>, name: String) -> BlobPager<'repo> {
+impl<'repo> BlobPager {
+    pub fn new(_repo: &'repo Repository, blob: Blob<'repo>, name: String) -> BlobPager {
         let content = match std::str::from_utf8(blob.content()) {
             Ok(v) => v,
             Err(e) => panic!("unable to decode utf8 {}", e),
         };
         let lines = content
             .lines()
-            .map(|line| Line::from(line.to_string()))
+            .map(|line| line.to_string())
             .collect();
         BlobPager {
             top: 0,
@@ -46,7 +46,7 @@ impl<'repo> BlobPager<'repo> {
     }
 }
 
-impl<'repo> Drawable<'repo> for BlobPager<'repo> {
+impl<'repo> Drawable<'repo> for BlobPager {
     fn draw(&self, f: &mut Frame, area: Rect, content_block: Block, reserved_rows: u16) {
         let viewport: usize = (f.size().height - reserved_rows).into();
         let bottom = if self.top + viewport > self.lines.len() {
@@ -54,8 +54,24 @@ impl<'repo> Drawable<'repo> for BlobPager<'repo> {
         } else {
             self.top + viewport
         };
-        let lines = self.lines[self.top..bottom].to_vec();
-        let content = Paragraph::new(lines.into_iter().collect::<Vec<Line>>()).block(content_block);
+        let filler: Vec<Line> = if bottom - self.top < viewport {
+            let v: Vec<Line> = vec![Line::styled("~", Style::default().add_modifier(Modifier::DIM))];
+            let len = viewport - (bottom - self.top);
+            v.iter().cycle().take(len).cloned().collect()
+        } else {
+            vec![]
+        };
+        let lines: Vec<Line> = self.lines[self.top..bottom]
+            .iter().enumerate()
+            .map(|(index, text)| {
+                let tmp = format!("{}", bottom);
+                let width = tmp.len();
+                let formatted = format!("{:width$} | ", index + self.top);
+                let lineno = Span::styled(formatted, Style::default().add_modifier(Modifier::DIM));
+                return Line::from(vec![lineno, Span::from(text)]);
+            }).collect();
+        let filled_lines: Vec<Line> = lines.iter().cloned().chain(filler.iter().cloned()).collect();
+        let content = Paragraph::new(filled_lines.into_iter().collect::<Vec<Line>>()).block(content_block);
         f.render_widget(content, area);
     }
 
@@ -64,7 +80,7 @@ impl<'repo> Drawable<'repo> for BlobPager<'repo> {
     }
 }
 
-impl<'repo> Navigable<'repo> for BlobPager<'repo> {
+impl<'repo> Navigable<'repo> for BlobPager {
     fn home(&mut self, _page_size: u16) {
         self.top = 0;
     }

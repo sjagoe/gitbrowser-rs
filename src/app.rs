@@ -32,7 +32,7 @@ pub struct App<'repo> {
     commit: Option<Commit<'repo>>,
     refs_page: RefsPage<'repo>,
     tree_pages: Vec<TreePage<'repo>>,
-    blob_pager: Option<BlobPager<'repo>>,
+    blob_pager: Option<BlobPager>,
     mode: AppMode,
     height: u16,
 }
