@@ -41,9 +41,10 @@ impl<'repo> BlobPager {
         match object.into_blob() {
             Ok(blob) => {
                 if blob.is_binary() {
-                    return None;
+                    None
+                } else {
+                    Some(BlobPager::new(repo, blob, name))
                 }
-                return Some(BlobPager::new(repo, blob, name));
             }
             Err(_) => panic!("peeling blob"),
         }
@@ -76,7 +77,7 @@ impl<'repo> Drawable<'repo> for BlobPager {
                 let width = tmp.len();
                 let formatted = format!("{:width$} | ", index + self.top);
                 let lineno = Span::styled(formatted, Style::default().add_modifier(Modifier::DIM));
-                return Line::from(vec![lineno, Span::from(text)]);
+                Line::from(vec![lineno, Span::from(text)])
             })
             .collect();
         let filled_lines: Vec<Line> = lines
@@ -90,7 +91,7 @@ impl<'repo> Drawable<'repo> for BlobPager {
     }
 
     fn title(&self) -> String {
-        return format!("{}", self.name);
+        self.name.to_string()
     }
 }
 
@@ -101,7 +102,7 @@ impl<'repo> Navigable<'repo> for BlobPager {
 
     fn end(&mut self, page_size: u16) {
         let h: usize = page_size.into();
-        self.top = if self.lines.len() > 0 {
+        self.top = if !self.lines.is_empty() {
             self.lines.len() - h
         } else {
             0
@@ -123,7 +124,7 @@ impl<'repo> Navigable<'repo> for BlobPager {
         if self.top < h {
             self.top = 0;
         } else {
-            self.top = self.top - h;
+            self.top -= h;
         }
     }
 
@@ -141,10 +142,10 @@ impl<'repo> Navigable<'repo> for BlobPager {
     }
 
     fn select(&self) -> Option<(Object<'repo>, String)> {
-        return None;
+        None
     }
 
     fn selected_item(&self) -> String {
-        return "".to_string();
+        "".to_string()
     }
 }
