@@ -1,5 +1,4 @@
 use git2::{Object, Repository};
-
 use ratatui::{
     layout::Rect,
     prelude::Modifier,
@@ -9,9 +8,8 @@ use ratatui::{
     Frame,
 };
 
-use crate::traits::{Drawable, Navigable};
-
 use crate::app::pagination::pagination;
+use crate::traits::{Drawable, Navigable};
 
 pub struct RefsPage<'repo> {
     repo: &'repo Repository,
@@ -27,10 +25,7 @@ impl<'repo> RefsPage<'repo> {
     }
 
     fn len(&self) -> usize {
-        match self.repo.references() {
-            Ok(refs) => refs.count(),
-            Err(_) => 0,
-        }
+        self.repo.references().map(|refs| refs.count()).unwrap_or(0)
     }
 
     fn items(&self) -> Vec<String> {
@@ -40,7 +35,7 @@ impl<'repo> RefsPage<'repo> {
         };
         return refs
             .names()
-            .map(|refname| refname.unwrap().to_string())
+            .map(|refname| refname.expect("Couldn't get refname").to_string())
             .collect();
     }
 }
@@ -83,16 +78,15 @@ impl<'repo> Drawable<'repo> for RefsPage<'repo> {
     fn title(&self) -> String {
         if let Some(path) = self.repo.path().parent() {
             if let Some(name) = path.file_name() {
-                format!("{}", name.to_string_lossy())
+                name.to_string_lossy().to_string()
             } else {
-                format!("{}", path.to_string_lossy())
+                path.to_string_lossy().to_string()
             }
         } else {
-            format!("{}", self.repo.path().to_string_lossy())
+            self.repo.path().to_string_lossy().to_string()
         }
     }
 }
-
 impl<'repo> Navigable<'repo> for RefsPage<'repo> {
     fn home(&mut self, _page_size: u16) {
         self.selected_index = 0;
@@ -104,21 +98,13 @@ impl<'repo> Navigable<'repo> for RefsPage<'repo> {
 
     fn pagedown(&mut self, page_size: u16) {
         let h: usize = page_size.into();
-        let selected_index = self.selected_index + h;
-        self.selected_index = if selected_index > self.len() {
-            self.len() - 1
-        } else {
-            selected_index
-        }
+        let index = self.selected_index.saturating_add(h);
+        self.selected_index = index.min(self.len().saturating_sub(1));
     }
 
     fn pageup(&mut self, page_size: u16) {
         let h: usize = page_size.into();
-        if self.selected_index < h {
-            self.selected_index = 0;
-        } else {
-            self.selected_index -= h;
-        }
+        self.selected_index = self.selected_index.saturating_sub(h);
     }
 
     fn next_selection(&mut self) {
@@ -140,9 +126,7 @@ impl<'repo> Navigable<'repo> for RefsPage<'repo> {
     fn select(&self) -> Option<(Object<'repo>, String)> {
         let selected_ref = &self.items()[self.selected_index];
         match self.repo.revparse_single(selected_ref) {
-            Ok(object) => {
-                Some((object, "".to_string()))
-            }
+            Ok(object) => Some((object, "".to_string())),
             Err(e) => {
                 panic!("Couldn't parse ref {}", e);
             }
