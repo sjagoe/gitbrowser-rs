@@ -147,12 +147,16 @@ impl<'repo> App<'repo> {
 
         if let Some(page) = match self.mode.last() {
             Some(AppMode::BrowseRefs) => Some(Box::<&dyn Drawable>::new(&self.refs_page)),
-            Some(AppMode::BrowseTrees) => {
-                Some(Box::<&dyn Drawable>::new(self.tree_pages.last().expect("No tree browsing page in tree mode")))
-            }
-            Some(AppMode::ViewBlob) => {
-                Some(Box::<&dyn Drawable>::new(self.blob_pager.as_ref().expect("No blob browser page in blob mode")))
-            }
+            Some(AppMode::BrowseTrees) => Some(Box::<&dyn Drawable>::new(
+                self.tree_pages
+                    .last()
+                    .expect("No tree browsing page in tree mode"),
+            )),
+            Some(AppMode::ViewBlob) => Some(Box::<&dyn Drawable>::new(
+                self.blob_pager
+                    .as_ref()
+                    .expect("No blob browser page in blob mode"),
+            )),
             _ => None,
         } {
             page.draw(f, area, content_block, reserved_rows);
@@ -200,12 +204,16 @@ impl<'repo> App<'repo> {
         // Handle page navigation
         let page: Box<&mut dyn Navigable> = match self.mode.last() {
             Some(AppMode::BrowseRefs) => Box::new(&mut self.refs_page),
-            Some(AppMode::BrowseTrees) => {
-                Box::new(self.tree_pages.last_mut().expect("No tree browsing page in tree mode"))
-            }
-            Some(AppMode::ViewBlob) => {
-                Box::new(self.blob_pager.as_mut().expect("No blob browser page in blob mode"))
-            }
+            Some(AppMode::BrowseTrees) => Box::new(
+                self.tree_pages
+                    .last_mut()
+                    .expect("No tree browsing page in tree mode"),
+            ),
+            Some(AppMode::ViewBlob) => Box::new(
+                self.blob_pager
+                    .as_mut()
+                    .expect("No blob browser page in blob mode"),
+            ),
             _ => {
                 return Ok(());
             }
