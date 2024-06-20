@@ -115,6 +115,13 @@ impl<'repo> Navigable<'repo> for RefsPage<'repo> {
                 panic!("Couldn't parse ref {}", e);
             }
         }
+    }
 
+    fn selected_item(&self) -> String {
+        let items = &self.items();
+        if items.len() == 0 {
+            return "".to_string();
+        }
+        return format!("{}", items[self.selected_index]);
     }
 }

@@ -14,11 +14,13 @@ use ratatui::{
 
 use crate::traits::{Drawable, Navigable};
 
+mod blob_pager;
 mod pagination;
 mod refs_page;
 mod tree_page;
 
 use crate::app::{
+    blob_pager::BlobPager,
     refs_page::RefsPage,
     tree_page::TreePage,
 };
@@ -29,6 +31,7 @@ pub struct App<'repo> {
     commit: Option<Commit<'repo>>,
     refs_page: RefsPage<'repo>,
     tree_pages: Vec<TreePage<'repo>>,
+    blob_pager: Option<BlobPager<'repo>>,
 }
 
 impl<'repo> App<'repo> {
@@ -39,6 +42,7 @@ impl<'repo> App<'repo> {
             refs_page: RefsPage::new(repo),
             commit: None,
             tree_pages: vec![],
+            blob_pager: None,
         }
     }
 
@@ -51,7 +55,7 @@ impl<'repo> App<'repo> {
         if let Some(commit) = &self.commit {
             repo_name.push(format!("@{}", commit.id()));
         }
-        if self.tree_pages.len() > 1 {
+        if self.tree_pages.len() > 1 || !self.blob_pager.is_none() {
             repo_name.push(": ".to_string());
         }
 
@@ -69,6 +73,16 @@ impl<'repo> App<'repo> {
                     Style::default().fg(Color::Blue).add_modifier(Modifier::BOLD)),
             );
         }
+
+        if let Some(pager) = &self.blob_pager {
+            parts.push(
+                Span::styled(
+                    pager.title(),
+                    Style::default().fg(Color::Gray),
+                )
+            );
+        }
+
         parts.push(Span::from(" "));
         return parts;
     }
@@ -81,7 +95,9 @@ impl<'repo> App<'repo> {
             .style(Style::default())
             .title(title);
 
-        let page: Box<&dyn Drawable> = if let Some(p) = self.tree_pages.last() {
+        let page: Box<&dyn Drawable> = if let Some(p) = &self.blob_pager {
+            Box::new(p)
+        } else if let Some(p) = self.tree_pages.last() {
             Box::new(p)
         } else {
             Box::new(&self.refs_page)
@@ -91,62 +107,74 @@ impl<'repo> App<'repo> {
     }
 
     pub fn next_selection(&mut self) {
-        if let Some(page) = self.tree_pages.last_mut() {
-            page.next_selection();
-        } else {
-            self.refs_page.next_selection();
+        if self.blob_pager.is_none() {
+            if let Some(page) = self.tree_pages.last_mut() {
+                page.next_selection();
+            } else {
+                self.refs_page.next_selection();
+            }
         }
     }
 
     pub fn previous_selection(&mut self) {
-        if let Some(page) = self.tree_pages.last_mut() {
-            page.previous_selection();
-        } else {
-            self.refs_page.previous_selection();
+        if self.blob_pager.is_none() {
+            if let Some(page) = self.tree_pages.last_mut() {
+                page.previous_selection();
+            } else {
+                self.refs_page.previous_selection();
+            }
         }
     }
 
     pub fn select(&mut self) {
-        let page: Box<&dyn Navigable> = if let Some(p) = self.tree_pages.last() {
-            Box::new(p)
-        } else {
-            Box::new(&self.refs_page)
-        };
-        let (object, name) = page.select();
-        match object.kind() {
-            Some(ObjectType::Blob) => {},
-            Some(ObjectType::Tree) => {
-                self.tree_pages.push(
-                    TreePage::new(
-                        self.repo,
-                        object,
-                        name,
-                    ),
-                );
-            }
-            Some(ObjectType::Commit) => {
-                match object.peel_to_commit() {
-                    Ok(commit) => {
-                        self.commit = Some(commit);
-                        self.tree_pages.push(
-                            TreePage::new(
-                                self.repo,
-                                object,
-                                name,
-                            ),
-                        );
-                    }
-                    Err(e) => panic!("Unable to peel commit? {}", e)
+        if self.blob_pager.is_none() {
+            let page: Box<&dyn Navigable> = if let Some(p) = self.tree_pages.last() {
+                Box::new(p)
+            } else {
+                Box::new(&self.refs_page)
+            };
+            let (object, name) = page.select();
+            match object.kind() {
+                Some(ObjectType::Blob) => {
+                    self.blob_pager = Some(BlobPager::from_object(self.repo, object, page.selected_item()));
+                },
+                Some(ObjectType::Tree) => {
+                    self.tree_pages.push(
+                        TreePage::new(
+                            self.repo,
+                            object,
+                            name,
+                        ),
+                    );
                 }
+                Some(ObjectType::Commit) => {
+                    match object.peel_to_commit() {
+                        Ok(commit) => {
+                            self.commit = Some(commit);
+                            self.tree_pages.push(
+                                TreePage::new(
+                                    self.repo,
+                                    object,
+                                    name,
+                                ),
+                            );
+                        }
+                        Err(e) => panic!("Unable to peel commit? {}", e)
+                    }
+                }
+                _ => {}
             }
-            _ => {}
         }
     }
 
     pub fn back(&mut self) {
-        self.tree_pages.pop();
-        if self.tree_pages.len() == 0 {
-            self.commit = None;
+        if self.blob_pager.is_none() {
+            self.tree_pages.pop();
+            if self.tree_pages.len() == 0 {
+                self.commit = None;
+            }
+        } else {
+            self.blob_pager = None;
         }
     }
 

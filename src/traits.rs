@@ -18,6 +18,7 @@ pub trait Navigable<'repo> {
     fn next_selection(&mut self);
     fn previous_selection(&mut self);
     fn select(&self) -> (Object<'repo>, String);
+    fn selected_item(&self) -> String;
 }
 
 pub trait Drawable<'repo> {

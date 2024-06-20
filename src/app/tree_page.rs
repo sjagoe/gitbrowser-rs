@@ -120,4 +120,23 @@ impl<'repo> Navigable<'repo> for TreePage<'repo> {
             }
         }
     }
+
+    fn selected_item(&self) -> String {
+        match self.tree_object.peel_to_tree() {
+            Ok(tree) => {
+                if let Some(entry) = tree.get(self.selected_index) {
+                    if let Some(name) = entry.name() {
+                        return name.to_string();
+                    } else {
+                        panic!("Failed to get tree entry name");
+                    }
+                } else {
+                    panic!("no tree entry?!?");
+                };
+            }
+            Err(e) => {
+                panic!("no tree?!? {}", e);
+            }
+        }
+    }
 }
