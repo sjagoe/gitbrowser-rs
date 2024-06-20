@@ -79,15 +79,16 @@ impl<'repo> Drawable<'repo> for RefsPage<'repo> {
         f.render_widget(content, area);
     }
 
+
     fn title(&self) -> String {
         if let Some(path) = self.repo.path().parent() {
             if let Some(name) = path.file_name() {
-                format!("{}", name.to_string_lossy())
+                name.to_string_lossy().to_string()
             } else {
-                format!("{}", path.to_string_lossy())
+                path.to_string_lossy().to_string()
             }
         } else {
-            format!("{}", self.repo.path().to_string_lossy())
+            self.repo.path().to_string_lossy().to_string()
         }
     }
 }
