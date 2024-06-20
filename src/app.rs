@@ -1,4 +1,4 @@
-use git2::{Repository, Object, ObjectType, Tree, TreeEntry};
+use git2::{Commit, Repository, Object, ObjectType, Tree, TreeEntry};
 
 use ratatui::{
     prelude::Modifier,
@@ -29,6 +29,7 @@ struct TreePage<'repo> {
 pub struct App<'repo> {
     pub search_input: String,
     repo: &'repo Repository,
+    commit: Option<Commit<'repo>>,
     refs_page: RefsPage<'repo>,
     tree_pages: Vec<TreePage<'repo>>,
 }
@@ -122,18 +123,10 @@ impl<'repo> Navigable<'repo> for TreePage<'repo> {
                 if let Some(entry) = tree.get(self.selected_index) {
                     match entry.to_object(self.repo) {
                         Ok(object) => {
-                            match object.kind() {
-                                Some(ObjectType::Tree) => {
-                                    if let Some(name) = entry.name() {
-                                        return (object, name.into());
-                                    } else {
-                                        panic!("Failed to get tree entry name");
-                                    }
-                                }
-                                Some(ObjectType::Blob) => {
-                                    panic!("read blob");
-                                }
-                                _ => panic!("not implemented")
+                            if let Some(name) = entry.name() {
+                                return (object, name.into());
+                            } else {
+                                panic!("Failed to get tree entry name");
                             }
                         }
                         Err(e) => {
@@ -246,6 +239,7 @@ impl<'repo> App<'repo> {
             search_input: String::new(),
             repo: repo,
             refs_page: RefsPage::new(repo),
+            commit: None,
             tree_pages: vec![],
         }
     }
@@ -254,18 +248,23 @@ impl<'repo> App<'repo> {
         let mut parts = vec![
             Span::from(" "),
         ];
+
+        let mut repo_name = vec![self.refs_page.title()];
+        if let Some(commit) = &self.commit {
+            repo_name.push(format!("@{}", commit.id()));
+        }
+        if self.tree_pages.len() > 1 {
+            repo_name.push(": ".to_string());
+        }
+
         parts.push(
             Span::styled(
-                self.refs_page.title(),
+                repo_name.join(""),
                 Style::default().fg(Color::Green).add_modifier(Modifier::BOLD)),
         );
-        parts.push(Span::from(" "));
+
         for (ix, page) in self.tree_pages.iter().enumerate() {
-            let sep = if ix > 0 {
-                "/"
-            } else {
-                ""
-            };
+            let sep = if ix > 0 { "/" } else { "" };
             parts.push(
                 Span::styled(
                     format!("{}{}", page.title(), sep),
@@ -316,17 +315,44 @@ impl<'repo> App<'repo> {
             Box::new(&self.refs_page)
         };
         let (object, name) = page.select();
-        self.tree_pages.push(
-            TreePage::new(
-                self.repo,
-                object,
-                name,
-            ),
-        );
+        match object.kind() {
+            Some(ObjectType::Blob) => {
+                eprintln!("Selected blob {}", name);
+            },
+            Some(ObjectType::Tree) => {
+                eprintln!("Selected item {}", name);
+                self.tree_pages.push(
+                    TreePage::new(
+                        self.repo,
+                        object,
+                        name,
+                    ),
+                );
+            }
+            Some(ObjectType::Commit) => {
+                match object.peel_to_commit() {
+                    Ok(commit) => {
+                        self.commit = Some(commit);
+                        self.tree_pages.push(
+                            TreePage::new(
+                                self.repo,
+                                object,
+                                name,
+                            ),
+                        );
+                    }
+                    Err(e) => panic!("Unable to peel commit? {}", e)
+                }
+            }
+            _ => {}
+        }
     }
 
     pub fn back(&mut self) {
         self.tree_pages.pop();
+        if self.tree_pages.len() == 0 {
+            self.commit = None;
+        }
     }
 
     // pub fn save_key_value(&mut self) {
