@@ -15,11 +15,14 @@ use ratatui::{
 use crate::traits::{Drawable, Navigable};
 
 mod blob_pager;
+pub mod navigation;
 mod pagination;
 mod refs_page;
 mod tree_page;
 
-use crate::app::{blob_pager::BlobPager, refs_page::RefsPage, tree_page::TreePage};
+use crate::app::{
+    blob_pager::BlobPager, navigation::NavigationAction, refs_page::RefsPage, tree_page::TreePage,
+};
 
 enum AppMode {
     ByRef,
@@ -132,7 +135,7 @@ impl<'repo> App<'repo> {
         page.draw(f, area, content_block, reserved_rows);
     }
 
-    pub fn home(&mut self) {
+    pub fn navigate(&mut self, action: NavigationAction) {
         let page: Box<&mut dyn Navigable> = if let Some(pager) = &mut self.blob_pager {
             Box::new(pager)
         } else if let Some(p) = self.tree_pages.last_mut() {
@@ -140,62 +143,18 @@ impl<'repo> App<'repo> {
         } else {
             Box::new(&mut self.refs_page)
         };
-        page.home(self.height);
-    }
 
-    pub fn end(&mut self) {
-        let page: Box<&mut dyn Navigable> = if let Some(pager) = &mut self.blob_pager {
-            Box::new(pager)
-        } else if let Some(p) = self.tree_pages.last_mut() {
-            Box::new(p)
-        } else {
-            Box::new(&mut self.refs_page)
-        };
-        page.end(self.height);
-    }
-
-    pub fn pagedown(&mut self) {
-        let page: Box<&mut dyn Navigable> = if let Some(pager) = &mut self.blob_pager {
-            Box::new(pager)
-        } else if let Some(p) = self.tree_pages.last_mut() {
-            Box::new(p)
-        } else {
-            Box::new(&mut self.refs_page)
-        };
-        page.pagedown(self.height);
-    }
-
-    pub fn pageup(&mut self) {
-        let page: Box<&mut dyn Navigable> = if let Some(pager) = &mut self.blob_pager {
-            Box::new(pager)
-        } else if let Some(p) = self.tree_pages.last_mut() {
-            Box::new(p)
-        } else {
-            Box::new(&mut self.refs_page)
-        };
-        page.pageup(self.height);
-    }
-
-    pub fn next_selection(&mut self) {
-        let page: Box<&mut dyn Navigable> = if let Some(pager) = &mut self.blob_pager {
-            Box::new(pager)
-        } else if let Some(p) = self.tree_pages.last_mut() {
-            Box::new(p)
-        } else {
-            Box::new(&mut self.refs_page)
-        };
-        page.next_selection();
-    }
-
-    pub fn previous_selection(&mut self) {
-        let page: Box<&mut dyn Navigable> = if let Some(pager) = &mut self.blob_pager {
-            Box::new(pager)
-        } else if let Some(p) = self.tree_pages.last_mut() {
-            Box::new(p)
-        } else {
-            Box::new(&mut self.refs_page)
-        };
-        page.previous_selection();
+        match action {
+            NavigationAction::Select => self.select(),
+            NavigationAction::Back => self.back(),
+            NavigationAction::Home => page.home(self.height),
+            NavigationAction::End => page.end(self.height),
+            NavigationAction::PageUp => page.pageup(self.height),
+            NavigationAction::PageDown => page.pagedown(self.height),
+            NavigationAction::NextSelection => page.next_selection(),
+            NavigationAction::PreviousSelection => page.previous_selection(),
+            NavigationAction::Invalid => {}
+        }
     }
 
     pub fn select(&mut self) {

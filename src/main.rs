@@ -1,4 +1,4 @@
-use crossterm::event::{self, Event, KeyCode, KeyEvent, KeyEventKind, KeyModifiers};
+use crossterm::event::{self, Event, KeyCode, KeyEventKind, KeyModifiers};
 use ratatui::{backend::Backend, Terminal};
 
 mod app;
@@ -6,7 +6,10 @@ mod errors;
 mod traits;
 mod tui;
 mod ui;
-use crate::{app::App, ui::ui};
+use crate::{
+    app::{navigation::NavigationAction, App},
+    ui::ui,
+};
 
 use color_eyre::Result;
 
@@ -69,77 +72,8 @@ fn run_app<B: Backend>(terminal: &mut Terminal<B>, app: &mut App) -> Result<bool
                 if key.code == KeyCode::Char('x') && key.modifiers == KeyModifiers::CONTROL {
                     return Ok(true);
                 }
-                if key.code == KeyCode::Char('g') && key.modifiers == KeyModifiers::CONTROL {
-                    app.back();
-                    continue;
-                }
-            }
-            // Page-specific keys
-            match read_event {
-                Event::Key(KeyEvent {
-                    code: KeyCode::Down,
-                    modifiers,
-                    ..
-                }) => {
-                    if modifiers == KeyModifiers::empty() {
-                        app.next_selection();
-                    }
-                }
-                Event::Key(KeyEvent {
-                    code: KeyCode::Up,
-                    modifiers,
-                    ..
-                }) => {
-                    if modifiers == KeyModifiers::empty() {
-                        app.previous_selection();
-                    }
-                }
-                Event::Key(KeyEvent {
-                    code: KeyCode::PageDown,
-                    modifiers,
-                    ..
-                }) => {
-                    if modifiers == KeyModifiers::empty() {
-                        app.pagedown();
-                    }
-                }
-                Event::Key(KeyEvent {
-                    code: KeyCode::PageUp,
-                    modifiers,
-                    ..
-                }) => {
-                    if modifiers == KeyModifiers::empty() {
-                        app.pageup();
-                    }
-                }
-                Event::Key(KeyEvent {
-                    code: KeyCode::Home,
-                    modifiers,
-                    ..
-                }) => {
-                    if modifiers == KeyModifiers::empty() {
-                        app.home();
-                    }
-                }
-                Event::Key(KeyEvent {
-                    code: KeyCode::End,
-                    modifiers,
-                    ..
-                }) => {
-                    if modifiers == KeyModifiers::empty() {
-                        app.end();
-                    }
-                }
-                Event::Key(KeyEvent {
-                    code: KeyCode::Enter,
-                    modifiers,
-                    ..
-                }) => {
-                    if modifiers == KeyModifiers::empty() {
-                        app.select();
-                    }
-                }
-                _ => {}
+                let navigation_action = NavigationAction::from(key);
+                app.navigate(navigation_action);
             }
         }
     }
