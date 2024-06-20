@@ -73,9 +73,8 @@ fn run_app<B: Backend>(terminal: &mut Terminal<B>, app: &mut App) -> Result<bool
                     return Ok(true);
                 }
                 let navigation_action = NavigationAction::from(key);
-                match app.navigate(navigation_action) {
-                    Ok(_) => {}
-                    Err(e) => app.error(e),
+                if let Err(error) = app.navigate(navigation_action) {
+                    app.error(error);
                 }
             }
         }
