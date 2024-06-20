@@ -82,13 +82,14 @@ impl<'repo> Drawable<'repo> for TreePage<'repo> {
 
                 for (pos, entry) in display_items.enumerate() {
                     let selected = pos + page_start_index == self.selected_index;
-                    let (kind, kind_style) = entry.display_kind();
-                    let (value, style) = entry.display_name(selected);
-                    let line = Line::from(vec![
-                        Span::styled(format!("{:10}", kind), kind_style),
-                        Span::styled(value, style),
-                    ]);
-                    list_items.push(ListItem::new(line));
+                    if let Some((kind, kind_style)) = entry.display_kind(self.repo) {
+                        let (value, style) = entry.display_name(selected);
+                        let line = Line::from(vec![
+                            Span::styled(format!("{:10}", kind), kind_style),
+                            Span::styled(value, style),
+                        ]);
+                        list_items.push(ListItem::new(line));
+                    }
                 }
                 let content = List::new(list_items).block(content_block);
                 f.render_widget(content, area);
@@ -316,11 +317,8 @@ impl<'repo> App<'repo> {
         };
         let (object, name) = page.select();
         match object.kind() {
-            Some(ObjectType::Blob) => {
-                eprintln!("Selected blob {}", name);
-            },
+            Some(ObjectType::Blob) => {},
             Some(ObjectType::Tree) => {
-                eprintln!("Selected item {}", name);
                 self.tree_pages.push(
                     TreePage::new(
                         self.repo,

@@ -6,52 +6,44 @@ use ratatui::{
 };
 
 pub trait Display {
-    fn display_kind(&self) -> (String, Style);
+    fn display_kind<'repo>(&self, repo: &'repo Repository) -> Option<(String, Style)>;
 
     fn display_name(&self, selected: bool) -> (String, Style);
 }
 
-impl Display for Repository {
-    fn display_kind(&self) -> (String, Style) {
-        return ("".to_string(), Style::default());
-    }
-
-    fn display_name(&self, _selected: bool) -> (String, Style) {
-        let repo_name = if let Some(path) = self.path().parent() {
-            if let Some(name) = path.file_name() {
-                format!("{}", name.to_string_lossy())
-            } else {
-                format!("{}", path.to_string_lossy())
-            }
-        } else {
-            format!("{}", self.path().to_string_lossy())
-        };
-        return (
-            repo_name,
-            Style::default().fg(Color::Green).add_modifier(Modifier::BOLD),
-        );
-    }
-}
-
 impl<'tree> Display for TreeEntry<'tree> {
-    fn display_kind(&self) -> (String, Style) {
+    fn display_kind<'repo>(&self, repo: &'repo Repository) -> Option<(String, Style)> {
         if let Some(kind) = self.kind() {
             let value = match kind {
                 ObjectType::Tree => "tree",
-                ObjectType::Blob => "blob",
+                ObjectType::Blob => {
+                    let object = self.to_object(repo).ok()?;
+                    let blob = object.peel_to_blob().ok()?;
+                    let name = if blob.is_binary() {
+                        return Some((
+                            "binary".to_string(),
+                            Style::default()
+                                .fg(Color::Red)
+                                .add_modifier(Modifier::DIM),
+                        ));
+                    } else {
+                        "blob"
+                    };
+                    name
+                }
                 _ => "unknown",
             };
-            return (
+            return Some((
                 value.to_string(),
                 Style::default()
                     .fg(Color::Gray)
                     .add_modifier(Modifier::DIM),
-            );
+            ));
         }
-        return (
+        return Some((
             "unknown".to_string(),
             Style::default().fg(Color::Red).add_modifier(Modifier::BOLD),
-        );
+        ));
     }
 
     fn display_name(&self, selected: bool) -> (String, Style) {
