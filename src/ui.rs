@@ -11,10 +11,8 @@ use ratatui::{
 use crate::app::{App};
 
 
-pub fn ui(f: &mut Frame, app: &App) {
+pub fn ui(f: &mut Frame, app: &App, footer_min: u16, box_border: u16) {
     // Create the layout sections.
-    let footer_min = 3;
-    let box_border = 2;
     let chunks = Layout::default()
         .direction(Direction::Vertical)
         .constraints([

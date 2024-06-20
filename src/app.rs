@@ -46,6 +46,12 @@ impl<'repo> App<'repo> {
         }
     }
 
+    pub fn set_height(&mut self, h: u16) {
+        if let Some(page) = &mut self.blob_pager {
+            page.set_height(h);
+        }
+    }
+
     pub fn title(&self) -> Vec<Span> {
         let mut parts = vec![
             Span::from(" "),
@@ -106,28 +112,48 @@ impl<'repo> App<'repo> {
         page.draw(f, area, content_block, reserved_rows);
     }
 
-    pub fn next_selection(&mut self) {
-        if let Some(pager) = &mut self.blob_pager {
-            pager.next_selection();
+    pub fn pagedown(&mut self) {
+        let page: Box<&mut dyn Navigable> = if let Some(pager) = &mut self.blob_pager {
+            Box::new(pager)
+        } else if let Some(p) = self.tree_pages.last_mut() {
+            Box::new(p)
         } else {
-            if let Some(page) = self.tree_pages.last_mut() {
-                page.next_selection();
-            } else {
-                self.refs_page.next_selection();
-            }
-        }
+            Box::new(&mut self.refs_page)
+        };
+        page.pagedown();
+    }
+
+    pub fn pageup(&mut self) {
+        let page: Box<&mut dyn Navigable> = if let Some(pager) = &mut self.blob_pager {
+            Box::new(pager)
+        } else if let Some(p) = self.tree_pages.last_mut() {
+            Box::new(p)
+        } else {
+            Box::new(&mut self.refs_page)
+        };
+        page.pageup();
+    }
+
+    pub fn next_selection(&mut self) {
+        let page: Box<&mut dyn Navigable> = if let Some(pager) = &mut self.blob_pager {
+            Box::new(pager)
+        } else if let Some(p) = self.tree_pages.last_mut() {
+            Box::new(p)
+        } else {
+            Box::new(&mut self.refs_page)
+        };
+        page.next_selection();
     }
 
     pub fn previous_selection(&mut self) {
-        if let Some(pager) = &mut self.blob_pager {
-            pager.previous_selection();
+        let page: Box<&mut dyn Navigable> = if let Some(pager) = &mut self.blob_pager {
+            Box::new(pager)
+        } else if let Some(p) = self.tree_pages.last_mut() {
+            Box::new(p)
         } else {
-            if let Some(page) = self.tree_pages.last_mut() {
-                page.previous_selection();
-            } else {
-                self.refs_page.previous_selection();
-            }
-        }
+            Box::new(&mut self.refs_page)
+        };
+        page.previous_selection();
     }
 
     pub fn select(&mut self) {

@@ -52,55 +52,77 @@ fn main() -> Result<()> {
 }
 
 fn run_app<B: Backend>(terminal: &mut Terminal<B>, app: &mut App) -> Result<bool> {
+    let footer_min = 3;
+    let box_border = 2;
+    let reserved_height = footer_min + box_border;
     loop {
-        terminal.draw(|f| ui(f, app))?;
-
-        let read_event = event::read()?;
-        // Global keys
-        if let Event::Key(key) = read_event {
-            if key.kind == KeyEventKind::Release {
-                // Skip events that are not KeyEventKind::Press
-                continue;
-            }
-            if key.code == KeyCode::Char('x') && key.modifiers == KeyModifiers::CONTROL {
-                return Ok(true);
-            }
-            if key.code == KeyCode::Char('g') && key.modifiers == KeyModifiers::CONTROL {
-                app.back();
-                continue;
-            }
-        }
-        // Page-specific keys
-        match read_event {
-            Event::Key(KeyEvent {
-                code: KeyCode::Down,
-                modifiers,
-                ..
-            }) =>  {
-                if modifiers == KeyModifiers::empty() {
-                    app.next_selection();
+        match terminal.draw(|f| ui(f, app, footer_min, box_border)) {
+            Ok(frame) => {
+                app.set_height(frame.area.height - reserved_height);
+                let read_event = event::read()?;
+                // Global keys
+                if let Event::Key(key) = read_event {
+                    if key.kind == KeyEventKind::Release {
+                        // Skip events that are not KeyEventKind::Press
+                        continue;
+                    }
+                    if key.code == KeyCode::Char('x') && key.modifiers == KeyModifiers::CONTROL {
+                        return Ok(true);
+                    }
+                    if key.code == KeyCode::Char('g') && key.modifiers == KeyModifiers::CONTROL {
+                        app.back();
+                        continue;
+                    }
                 }
-            }
-            Event::Key(KeyEvent {
-                code: KeyCode::Up,
-                modifiers,
-                ..
-            }) =>  {
-                if modifiers == KeyModifiers::empty() {
-                    app.previous_selection();
+                // Page-specific keys
+                match read_event {
+                    Event::Key(KeyEvent {
+                        code: KeyCode::Down,
+                        modifiers,
+                        ..
+                    }) =>  {
+                        if modifiers == KeyModifiers::empty() {
+                            app.next_selection();
+                        }
+                    }
+                    Event::Key(KeyEvent {
+                        code: KeyCode::PageDown,
+                        modifiers,
+                        ..
+                    }) =>  {
+                        if modifiers == KeyModifiers::empty() {
+                            app.pagedown();
+                        }
+                    }
+                    Event::Key(KeyEvent {
+                        code: KeyCode::PageUp,
+                        modifiers,
+                        ..
+                    }) =>  {
+                        if modifiers == KeyModifiers::empty() {
+                            app.pageup();
+                        }
+                    }
+                    Event::Key(KeyEvent {
+                        code: KeyCode::Up,
+                        modifiers,
+                        ..
+                    }) =>  {
+                        if modifiers == KeyModifiers::empty() {
+                            app.previous_selection();
+                        }
+                    }
+                    Event::Key(KeyEvent {
+                        code: KeyCode::Enter,
+                        modifiers,
+                        ..
+                    }) =>  {
+                        if modifiers == KeyModifiers::empty() {
+                            app.select();
+                        }
+                    }
+                    _ => {}
                 }
-            }
-            Event::Key(KeyEvent {
-                code: KeyCode::Enter,
-                modifiers,
-                ..
-            }) =>  {
-                if modifiers == KeyModifiers::empty() {
-                    app.select();
-                }
-            }
-            _ => {}
-        }
                 // CurrentScreen::Editing if key.kind == KeyEventKind::Press => {
                 //     match key.code {
                 //         KeyCode::Enter => {
@@ -150,5 +172,8 @@ fn run_app<B: Backend>(terminal: &mut Terminal<B>, app: &mut App) -> Result<bool
                 //         _ => {}
                 //     }
                 // }
+            }
+            Err(_) => {}
+        }
     }
 }

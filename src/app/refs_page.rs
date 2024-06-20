@@ -89,6 +89,9 @@ impl<'repo> Drawable<'repo> for RefsPage<'repo> {
 }
 
 impl<'repo> Navigable<'repo> for RefsPage<'repo> {
+    fn pagedown(&mut self) {}
+    fn pageup(&mut self) {}
+
     fn next_selection(&mut self) {
         if self.selected_index < self.len() - 1 {
             self.selected_index += 1;
