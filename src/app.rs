@@ -35,8 +35,8 @@ use crate::{
 enum AppMode {
     BrowseRefs,
     BrowseTrees,
-    // ViewBlob,
-    // Error,
+    ViewBlob,
+    Error,
 }
 
 pub struct App<'repo> {
@@ -180,17 +180,34 @@ impl<'repo> App<'repo> {
     }
 
     pub fn navigate(&mut self, action: NavigationAction) -> Result<(), GitBrowserError> {
-        let page: Box<&mut dyn Navigable> = if let Some(pager) = &mut self.blob_pager {
-            Box::new(pager)
-        } else if let Some(p) = self.tree_pages.last_mut() {
-            Box::new(p)
-        } else {
-            Box::new(&mut self.refs_page)
+        // Handle Select and Back on self and exit early
+        match action {
+            NavigationAction::Select => {
+                self.select()?;
+                return Ok(());
+            }
+            NavigationAction::Back => {
+                self.back();
+                return Ok(());
+            }
+            _ => {}
+        }
+
+        // Handle page navigation
+        let page: Box<&mut dyn Navigable> = match self.mode.last() {
+            Some(AppMode::BrowseRefs) => Box::new(&mut self.refs_page),
+            Some(AppMode::BrowseTrees) => {
+                Box::new(self.tree_pages.last_mut().expect("No tree browsing page in tree mode"))
+            }
+            Some(AppMode::ViewBlob) => {
+                Box::new(self.blob_pager.as_mut().expect("No blob browser page in blob mode"))
+            }
+            _ => {
+                return Ok(());
+            }
         };
 
         match action {
-            NavigationAction::Select => self.select()?,
-            NavigationAction::Back => self.back(),
             NavigationAction::Home => page.home(self.height),
             NavigationAction::End => page.end(self.height),
             NavigationAction::PageUp => page.pageup(self.height),
@@ -198,6 +215,9 @@ impl<'repo> App<'repo> {
             NavigationAction::NextSelection => page.next_selection(),
             NavigationAction::PreviousSelection => page.previous_selection(),
             NavigationAction::Invalid => {}
+            // Handled above
+            NavigationAction::Select => {}
+            NavigationAction::Back => {}
         }
         Ok(())
     }
@@ -222,16 +242,19 @@ impl<'repo> App<'repo> {
             Some(ObjectType::Blob) => {
                 let pager = BlobPager::from_object(self.repo, object, page.selected_item())?;
                 self.blob_pager = Some(pager);
+                self.mode.push(AppMode::ViewBlob);
                 Ok(())
             }
             Some(ObjectType::Tree) => {
                 self.tree_pages.push(TreePage::new(self.repo, object, name));
+                self.mode.push(AppMode::BrowseTrees);
                 Ok(())
             }
             Some(ObjectType::Commit) => {
                 let commit = object.peel_to_commit().expect("Unable to peel commit");
                 self.commit = Some(commit);
                 self.tree_pages.push(TreePage::new(self.repo, object, name));
+                self.mode.push(AppMode::BrowseTrees);
                 Ok(())
             }
             _ => Ok(()),
@@ -239,30 +262,34 @@ impl<'repo> App<'repo> {
     }
 
     pub fn back(&mut self) {
-        if self.active_error.is_some() {
-            self.active_error = None;
-        } else if self.blob_pager.is_none() {
-            if let Some(mode) = self.mode.first() {
-                match mode {
-                    AppMode::BrowseRefs => {
+        if let Some(mode) = self.mode.pop() {
+            match mode {
+                AppMode::BrowseRefs => {
+                    self.tree_pages.pop();
+                }
+                AppMode::BrowseTrees => {
+                    if self.tree_pages.len() > 1 {
                         self.tree_pages.pop();
                     }
-                    AppMode::BrowseTrees => {
-                        if self.tree_pages.len() > 1 {
-                            self.tree_pages.pop();
-                        }
-                    }
+                }
+                AppMode::ViewBlob => {
+                    self.blob_pager = None;
+                }
+                AppMode::Error => {
+                    self.active_error = None;
                 }
             }
-            if self.tree_pages.is_empty() {
-                self.commit = None;
+            if self.mode.is_empty() {
+                self.mode.push(mode);
             }
-        } else {
-            self.blob_pager = None;
+        }
+        if self.tree_pages.is_empty() {
+            self.commit = None;
         }
     }
 
     pub fn error(&mut self, error: GitBrowserError) {
         self.active_error = Some(error);
+        self.mode.push(AppMode::Error);
     }
 }
