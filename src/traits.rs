@@ -9,7 +9,7 @@ use ratatui::{
 };
 
 pub trait Display {
-    fn display_kind<'repo>(&self, repo: &'repo Repository) -> Option<(String, Style)>;
+    fn display_kind(&self, repo: &Repository) -> Option<(String, Style)>;
 
     fn display_name(&self, selected: bool) -> (String, Style);
 }
@@ -32,7 +32,7 @@ pub trait Drawable<'repo> {
 }
 
 impl<'tree> Display for TreeEntry<'tree> {
-    fn display_kind<'repo>(&self, repo: &'repo Repository) -> Option<(String, Style)> {
+    fn display_kind(&self, repo: &Repository) -> Option<(String, Style)> {
         if let Some(kind) = self.kind() {
             let value = match kind {
                 ObjectType::Tree => "tree",
