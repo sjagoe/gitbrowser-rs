@@ -1,5 +1,4 @@
 use git2::{Object, Repository};
-
 use ratatui::{
     layout::Rect,
     prelude::Modifier,
@@ -9,9 +8,8 @@ use ratatui::{
     Frame,
 };
 
-use crate::traits::{Drawable, Navigable};
-
 use crate::app::pagination::pagination;
+use crate::traits::{Drawable, Navigable};
 
 pub struct RefsPage<'repo> {
     repo: &'repo Repository,
@@ -27,9 +25,7 @@ impl<'repo> RefsPage<'repo> {
     }
 
     fn len(&self) -> usize {
-        self.repo.references()
-            .map(|refs| refs.count())
-            .unwrap_or(0)
+        self.repo.references().map(|refs| refs.count()).unwrap_or(0)
     }
 
     fn items(&self) -> Vec<String> {
@@ -78,7 +74,6 @@ impl<'repo> Drawable<'repo> for RefsPage<'repo> {
         let content = List::new(list_items).block(content_block);
         f.render_widget(content, area);
     }
-
 
     fn title(&self) -> String {
         if let Some(path) = self.repo.path().parent() {
@@ -132,9 +127,7 @@ impl<'repo> Navigable<'repo> for RefsPage<'repo> {
     fn select(&self) -> Option<(Object<'repo>, String)> {
         let selected_ref = &self.items()[self.selected_index];
         match self.repo.revparse_single(selected_ref) {
-            Ok(object) => {
-                Some((object, "".to_string()))
-            }
+            Ok(object) => Some((object, "".to_string())),
             Err(e) => {
                 panic!("Couldn't parse ref {}", e);
             }
