@@ -87,7 +87,6 @@ impl<'repo> Drawable<'repo> for RefsPage<'repo> {
         }
     }
 }
-
 impl<'repo> Navigable<'repo> for RefsPage<'repo> {
     fn home(&mut self, _page_size: u16) {
         self.selected_index = 0;
