@@ -81,7 +81,7 @@ impl<'repo> App<'repo> {
         if let Some(commit) = &self.commit {
             repo_name.push(format!("@{}", commit.id()));
         }
-        if self.tree_pages.len() > 1 || !self.blob_pager.is_none() {
+        if self.tree_pages.len() > 1 || self.blob_pager.is_some() {
             repo_name.push(": ".to_string());
         }
 
@@ -110,7 +110,7 @@ impl<'repo> App<'repo> {
         }
 
         parts.push(Span::from(" "));
-        return parts;
+        parts
     }
 
     pub fn draw(&self, f: &mut Frame, area: Rect, reserved_rows: u16) {
@@ -242,7 +242,7 @@ impl<'repo> App<'repo> {
                     }
                 }
             }
-            if self.tree_pages.len() == 0 {
+            if self.tree_pages.is_empty() {
                 self.commit = None;
             }
         } else {
