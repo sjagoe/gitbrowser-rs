@@ -1,15 +1,9 @@
 use ratatui::{
     layout::{Constraint, Direction, Layout, Rect},
-    style::{Color, Style},
-    text::{Line, Span},
-    widgets::{Block, Borders, Paragraph},
     Frame,
 };
 
-use crate::app::{
-    navigation::{ActionInfo, NavigationAction},
-    App
-};
+use crate::app::App;
 
 pub fn ui(f: &mut Frame, app: &mut App) {
     // Create the layout sections.
@@ -19,14 +13,7 @@ pub fn ui(f: &mut Frame, app: &mut App) {
         .split(f.size());
 
     app.draw(f, chunks[0]);
-
-    let keys_hint = format!("{} | {}", ActionInfo::from(NavigationAction::Exit), ActionInfo::from(NavigationAction::Back));
-    let current_keys_hint = Span::styled(keys_hint, Style::default().fg(Color::Red));
-
-    let key_notes_footer =
-        Paragraph::new(Line::from(current_keys_hint)).block(Block::default().borders(Borders::ALL));
-
-    f.render_widget(key_notes_footer, chunks[1]);
+    app.draw_context_hint(f, chunks[1]);
 
     // if let Some(editing) = &app.currently_editing {
     //     let popup_block = Block::default()

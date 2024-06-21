@@ -49,6 +49,12 @@ impl From<KeyEvent> for NavigationAction {
 
 impl From<NavigationAction> for ActionInfo {
     fn from(action: NavigationAction) -> ActionInfo {
+        ActionInfo::from(&action)
+    }
+}
+
+impl From<&NavigationAction> for ActionInfo {
+    fn from(action: &NavigationAction) -> ActionInfo {
         let (key, name) = match action {
             NavigationAction::Select => ("Enter", "Select"),
             NavigationAction::Back => ("C-g", "Back"),

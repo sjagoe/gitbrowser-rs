@@ -4,7 +4,7 @@ use ratatui::{
     layout::Rect,
     prelude::{Modifier, Text},
     style::{Color, Style},
-    text::Span,
+    text::{Line, Span},
     widgets::{
         block::{Padding, Title},
         Block, Borders, Paragraph,
@@ -27,7 +27,7 @@ mod tree_page;
 
 use crate::{
     app::{
-        blob_pager::BlobPager, external_editor::ExternalEditor, navigation::NavigationAction,
+        blob_pager::BlobPager, external_editor::ExternalEditor, navigation::{ActionInfo, NavigationAction},
         refs_page::RefsPage, tree_page::TreePage,
     },
     errors::{ErrorKind, GitBrowserError},
@@ -148,6 +148,31 @@ impl<'repo> App<'repo> {
 
         parts.push(Span::from(" "));
         parts
+    }
+
+    pub fn draw_context_hint(&self, f: &mut Frame, area: Rect) {
+        let actions = match self.mode() {
+            AppMode::ViewBlob => {
+                vec![
+                    NavigationAction::Exit,
+                    NavigationAction::Back,
+                    NavigationAction::ExternalEditor,
+                ]
+            }
+            _ => {
+                vec![
+                    NavigationAction::Exit,
+                    NavigationAction::Back,
+                    NavigationAction::Select,
+                    NavigationAction::ExternalEditor,
+                ]
+            }
+        };
+        let keys_hint = actions.iter().map(|a| ActionInfo::from(a).to_string()).collect::<Vec<String>>().join(" | ");
+        let content = Span::styled(keys_hint, Style::default().fg(Color::Red));
+        let block = Block::default().padding(Padding::horizontal(1)).borders(Borders::ALL);
+        let hint = Paragraph::new(Line::from(content)).block(block);
+        f.render_widget(hint, area);
     }
 
     pub fn draw(&mut self, f: &mut Frame, area: Rect) {
