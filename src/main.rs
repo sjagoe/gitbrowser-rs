@@ -56,7 +56,11 @@ fn main() -> Result<()> {
 }
 
 fn run_app<B: Backend>(terminal: &mut Terminal<B>, app: &mut App) -> Result<bool> {
+    let mut clear = false;
     loop {
+        if clear {
+            terminal.clear()?;
+        }
         terminal.draw(|f| ui(f, app))?;
 
         let read_event = event::read()?;
@@ -70,6 +74,14 @@ fn run_app<B: Backend>(terminal: &mut Terminal<B>, app: &mut App) -> Result<bool
                 return Ok(true);
             }
             let navigation_action = NavigationAction::from(key);
+            match navigation_action {
+                NavigationAction::ExternalEditor => {
+                    clear = true;
+                }
+                _ => {
+                    clear = false;
+                }
+            }
             if let Err(error) = app.navigate(navigation_action) {
                 app.error(error);
             }

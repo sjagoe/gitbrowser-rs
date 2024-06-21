@@ -333,6 +333,8 @@ impl<'repo> App<'repo> {
                 if let Some(external_editor) = &mut self.external_editor {
                     external_editor.display();
                 }
+                // We need to go back to the previous mode after the blocking editor display
+                self.back();
             }
         }
     }
