@@ -40,13 +40,14 @@ impl<'repo> TreePage<'repo> {
 }
 
 impl<'repo> Drawable<'repo> for TreePage<'repo> {
-    fn draw(&self, f: &mut Frame, area: Rect, content_block: Block, reserved_rows: u16) {
+    fn draw(&self, f: &mut Frame, area: Rect, content_block: Block) -> Rect {
         match self.tree_object.peel_to_tree() {
             Ok(tree) => {
+                let viewport = content_block.inner(area);
                 let mut list_items = Vec::<ListItem>::new();
                 let iter = tree.iter();
 
-                let visible = f.size().height - reserved_rows;
+                let visible = viewport.height;
                 let (_page, _pages, page_start_index) =
                     pagination(tree.len(), visible.into(), self.selected_index);
 
@@ -65,6 +66,7 @@ impl<'repo> Drawable<'repo> for TreePage<'repo> {
                 }
                 let content = List::new(list_items).block(content_block);
                 f.render_widget(content, area);
+                viewport
             }
             Err(e) => {
                 panic!("failed to peel tree {}", e);

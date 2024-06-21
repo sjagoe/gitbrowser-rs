@@ -41,11 +41,13 @@ impl<'repo> RefsPage<'repo> {
 }
 
 impl<'repo> Drawable<'repo> for RefsPage<'repo> {
-    fn draw(&self, f: &mut Frame, area: Rect, content_block: Block, reserved_rows: u16) {
+    fn draw(&self, f: &mut Frame, area: Rect, content_block: Block) -> Rect {
+        let viewport = content_block.inner(area);
+
         let mut list_items = Vec::<ListItem>::new();
         let items = self.items();
 
-        let visible = f.size().height - reserved_rows;
+        let visible = viewport.height;
         let (_page, _pages, page_start_index) =
             pagination(items.len(), visible.into(), self.selected_index);
 
@@ -73,6 +75,7 @@ impl<'repo> Drawable<'repo> for RefsPage<'repo> {
         }
         let content = List::new(list_items).block(content_block);
         f.render_widget(content, area);
+        viewport
     }
 
     fn title(&self) -> String {

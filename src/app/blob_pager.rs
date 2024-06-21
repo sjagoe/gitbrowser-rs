@@ -55,19 +55,20 @@ impl<'repo> BlobPager {
 }
 
 impl<'repo> Drawable<'repo> for BlobPager {
-    fn draw(&self, f: &mut Frame, area: Rect, content_block: Block, reserved_rows: u16) {
-        let viewport: usize = (f.size().height - reserved_rows).into();
-        let bottom = if self.top + viewport > self.lines.len() {
+    fn draw(&self, f: &mut Frame, area: Rect, content_block: Block) -> Rect {
+        let viewport = content_block.inner(area);
+        let height: usize = viewport.height.into();
+        let bottom = if self.top + height > self.lines.len() {
             self.lines.len()
         } else {
-            self.top + viewport
+            self.top + height
         };
-        let filler: Vec<Line> = if bottom - self.top < viewport {
+        let filler: Vec<Line> = if bottom - self.top < height {
             let v: Vec<Line> = vec![Line::styled(
                 "~",
                 Style::default().add_modifier(Modifier::DIM),
             )];
-            let len = viewport - (bottom - self.top);
+            let len = height - (bottom - self.top);
             v.iter().cycle().take(len).cloned().collect()
         } else {
             vec![]
@@ -91,6 +92,7 @@ impl<'repo> Drawable<'repo> for BlobPager {
         let content =
             Paragraph::new(filled_lines.into_iter().collect::<Vec<Line>>()).block(content_block);
         f.render_widget(content, area);
+        viewport
     }
 
     fn title(&self) -> String {

@@ -56,26 +56,22 @@ fn main() -> Result<()> {
 }
 
 fn run_app<B: Backend>(terminal: &mut Terminal<B>, app: &mut App) -> Result<bool> {
-    let footer_min = 3;
-    let box_border = 2;
-    let reserved_height = footer_min + box_border;
     loop {
-        if let Ok(frame) = terminal.draw(|f| ui(f, app, footer_min, box_border)) {
-            app.set_height(frame.area.height - reserved_height);
-            let read_event = event::read()?;
-            // Global keys
-            if let Event::Key(key) = read_event {
-                if key.kind == KeyEventKind::Release {
-                    // Skip events that are not KeyEventKind::Press
-                    continue;
-                }
-                if key.code == KeyCode::Char('x') && key.modifiers == KeyModifiers::CONTROL {
-                    return Ok(true);
-                }
-                let navigation_action = NavigationAction::from(key);
-                if let Err(error) = app.navigate(navigation_action) {
-                    app.error(error);
-                }
+        terminal.draw(|f| ui(f, app))?;
+
+        let read_event = event::read()?;
+
+        if let Event::Key(key) = read_event {
+            if key.kind == KeyEventKind::Release {
+                // Skip events that are not KeyEventKind::Press
+                continue;
+            }
+            if key.code == KeyCode::Char('x') && key.modifiers == KeyModifiers::CONTROL {
+                return Ok(true);
+            }
+            let navigation_action = NavigationAction::from(key);
+            if let Err(error) = app.navigate(navigation_action) {
+                app.error(error);
             }
         }
     }
