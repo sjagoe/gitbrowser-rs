@@ -1,3 +1,5 @@
+use std::env;
+
 use crossterm::event::{self, Event, KeyCode, KeyEventKind, KeyModifiers};
 use ratatui::{backend::Backend, Terminal};
 
@@ -24,6 +26,9 @@ struct Args {
 
     #[arg(short, long)]
     commit_id: Option<String>,
+
+    #[arg(short, long)]
+    pager: Option<String>,
 }
 
 fn main() -> Result<()> {
@@ -48,15 +53,30 @@ fn main() -> Result<()> {
         _ => None,
     };
 
+    let pager = match args.pager {
+        Some(pager) => pager,
+        None => {
+            if let Some(pager) = env::var_os("PAGER") {
+                pager.into_string().expect("Unable to decode PAGER env var")
+            } else {
+                "less".to_string()
+            }
+        }
+    };
+
     let mut terminal = tui::init()?;
-    let mut app = App::new(&repo, commit);
+    let mut app = App::new(&repo, commit, pager);
     run_app(&mut terminal, &mut app)?;
     tui::restore()?;
     Ok(())
 }
 
 fn run_app<B: Backend>(terminal: &mut Terminal<B>, app: &mut App) -> Result<bool> {
+    let mut redraw = false;
     loop {
+        if redraw {
+            terminal.clear()?;
+        }
         terminal.draw(|f| ui(f, app))?;
 
         let read_event = event::read()?;
@@ -70,8 +90,12 @@ fn run_app<B: Backend>(terminal: &mut Terminal<B>, app: &mut App) -> Result<bool
                 return Ok(true);
             }
             let navigation_action = NavigationAction::from(key);
-            if let Err(error) = app.navigate(navigation_action) {
-                app.error(error);
+            redraw = match app.navigate(&navigation_action) {
+                Ok(redraw) => redraw.0,
+                Err(error) => {
+                    app.error(error);
+                    true
+                }
             }
         }
     }

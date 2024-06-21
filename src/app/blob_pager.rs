@@ -12,16 +12,16 @@ use color_eyre::Result;
 use crate::errors::{ErrorKind, GitBrowserError};
 use crate::traits::{Drawable, Navigable};
 
-pub struct BlobPager {
+pub struct BlobPager<'repo> {
     top: usize,
     // repo: &'repo Repository,
-    // blob: Blob<'repo>,
-    name: String,
+    pub blob: Blob<'repo>,
+    pub name: String,
     lines: Vec<String>,
 }
 
-impl<'repo> BlobPager {
-    pub fn new(_repo: &'repo Repository, blob: Blob<'repo>, name: String) -> BlobPager {
+impl<'repo> BlobPager<'repo> {
+    pub fn new(_repo: &'repo Repository, blob: Blob<'repo>, name: String) -> BlobPager<'repo> {
         let content = match std::str::from_utf8(blob.content()) {
             Ok(v) => v,
             Err(e) => panic!("unable to decode utf8 {}", e),
@@ -30,7 +30,7 @@ impl<'repo> BlobPager {
         BlobPager {
             top: 0,
             // repo: repo,
-            // blob: blob.clone(),
+            blob: blob.clone(),
             name,
             lines,
         }
@@ -44,17 +44,17 @@ impl<'repo> BlobPager {
         match object.into_blob() {
             Ok(blob) => {
                 if blob.is_binary() {
-                    Err(GitBrowserError::Error(ErrorKind::BinaryFileError))
+                    Err(GitBrowserError::Error(ErrorKind::BinaryFile))
                 } else {
                     Ok(BlobPager::new(repo, blob, name))
                 }
             }
-            Err(_) => panic!("peeling blob"),
+            Err(_) => Err(GitBrowserError::Error(ErrorKind::BlobReference)),
         }
     }
 }
 
-impl<'repo> Drawable<'repo> for BlobPager {
+impl<'repo> Drawable<'repo> for BlobPager<'repo> {
     fn draw(&self, f: &mut Frame, area: Rect, content_block: Block) -> Rect {
         let viewport = content_block.inner(area);
         let height: usize = viewport.height.into();
@@ -100,7 +100,7 @@ impl<'repo> Drawable<'repo> for BlobPager {
     }
 }
 
-impl<'repo> Navigable<'repo> for BlobPager {
+impl<'repo> Navigable<'repo> for BlobPager<'repo> {
     fn home(&mut self, _page_size: u16) {
         self.top = 0;
     }
