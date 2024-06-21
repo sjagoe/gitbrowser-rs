@@ -52,24 +52,17 @@ impl<'repo> ExternalEditor {
     }
 
     pub fn display(&self) -> Result<(), GitBrowserError> {
-        match Builder::new().suffix(&self.name).tempfile() {
-            Ok(mut tempfile) => {
-                if tui::restore().is_err() {
-                    return Err(GitBrowserError::Error(ErrorKind::TerminalInitError));
-                }
-                eprintln!("Opening {} with {} ...", self.name, self.editor);
+        let mut tempfile = Builder::new().suffix(&self.name).tempfile()
+            .map_err(|_| GitBrowserError::Error(ErrorKind::TemporaryFileError))?;
 
-                let error = self.spawn_editor(&mut tempfile).err();
-                if tui::init().is_err() {
-                    return Err(GitBrowserError::Error(ErrorKind::TerminalInitError));
-                }
-                if let Some(e) = error {
-                    return Err(e);
-                }
-            }
-            Err(_) => {
-                return Err(GitBrowserError::Error(ErrorKind::TemporaryFileError));
-            }
+        tui::restore().map_err(|_| GitBrowserError::Error(ErrorKind::TerminalInitError))?;
+        eprintln!("Opening {} with {} ...", self.name, self.editor);
+
+        let error = self.spawn_editor(&mut tempfile).err();
+        tui::init().map_err(|_| GitBrowserError::Error(ErrorKind::TerminalInitError))?;
+
+        if let Some(e) = error {
+            return Err(e);
         }
         Ok(())
     }
