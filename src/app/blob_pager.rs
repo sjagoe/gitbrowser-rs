@@ -1,3 +1,6 @@
+use std::io::Write as _;
+use std::process::Command;
+
 use git2::{Blob, Object, Repository};
 
 use ratatui::{
@@ -6,6 +9,8 @@ use ratatui::{
     widgets::{Block, Paragraph},
     Frame,
 };
+
+use tempfile::Builder;
 
 use color_eyre::Result;
 
@@ -18,21 +23,24 @@ pub struct BlobPager {
     // blob: Blob<'repo>,
     name: String,
     lines: Vec<String>,
+    content: Vec<u8>,
 }
 
 impl<'repo> BlobPager {
     pub fn new(_repo: &'repo Repository, blob: Blob<'repo>, name: String) -> BlobPager {
-        let content = match std::str::from_utf8(blob.content()) {
+        let content = blob.content();
+        let utf8content = match std::str::from_utf8(content) {
             Ok(v) => v,
             Err(e) => panic!("unable to decode utf8 {}", e),
         };
-        let lines = content.lines().map(|line| line.to_string()).collect();
+        let lines = utf8content.lines().map(|line| line.to_string()).collect();
         BlobPager {
             top: 0,
             // repo: repo,
             // blob: blob.clone(),
             name,
             lines,
+            content: content.to_owned(),
         }
     }
 
@@ -147,6 +155,26 @@ impl<'repo> Navigable<'repo> for BlobPager {
     }
 
     fn select(&self) -> Option<(Object<'repo>, String)> {
+        match Builder::new().suffix(&self.name).tempfile() {
+            Ok(mut tempfile) => {
+                let file = tempfile.as_file_mut();
+                file.write_all(&self.content).expect("failed to write file");
+
+                let mut emacsclient = Command::new("emacsclient")
+                    .arg(tempfile.path())
+                    .spawn()
+                    .expect("failed to run emacsclient");
+
+                let ecode = emacsclient
+                    .wait()
+                    .expect("failed waiting for emacsclient to exit");
+
+                assert!(ecode.success());
+            }
+            // We should use a handlable error
+            Err(_) => panic!("unable to create temporary file"),
+        }
+
         None
     }
 

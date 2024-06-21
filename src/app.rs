@@ -239,14 +239,21 @@ impl<'repo> App<'repo> {
     }
 
     pub fn select(&mut self) -> Result<(), GitBrowserError> {
-        if self.blob_pager.is_some() {
-            return Ok(());
-        }
-
-        let page: Box<&dyn Navigable> = if let Some(p) = self.tree_pages.last() {
-            Box::new(p)
-        } else {
-            Box::new(&self.refs_page)
+        let page: Box<&mut dyn Navigable> = match self.mode.last() {
+            Some(AppMode::BrowseRefs) => Box::new(&mut self.refs_page),
+            Some(AppMode::BrowseTrees) => Box::new(
+                self.tree_pages
+                    .last_mut()
+                    .expect("No tree browsing page in tree mode"),
+            ),
+            Some(AppMode::ViewBlob) => Box::new(
+                self.blob_pager
+                    .as_mut()
+                    .expect("No blob browser page in blob mode"),
+            ),
+            _ => {
+                return Ok(());
+            }
         };
 
         let (object, name) = match page.select() {
