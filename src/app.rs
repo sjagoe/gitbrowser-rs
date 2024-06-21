@@ -4,7 +4,7 @@ use ratatui::{
     layout::Rect,
     prelude::{Modifier, Text},
     style::{Color, Style},
-    text::Span,
+    text::{Line, Span},
     widgets::{
         block::{Padding, Title},
         Block, Borders, Paragraph,
@@ -27,8 +27,11 @@ mod tree_page;
 
 use crate::{
     app::{
-        blob_pager::BlobPager, external_editor::ExternalEditor, navigation::NavigationAction,
-        refs_page::RefsPage, tree_page::TreePage,
+        blob_pager::BlobPager,
+        external_editor::ExternalEditor,
+        navigation::{ActionInfo, NavigationAction},
+        refs_page::RefsPage,
+        tree_page::TreePage,
     },
     errors::{ErrorKind, GitBrowserError},
 };
@@ -150,6 +153,44 @@ impl<'repo> App<'repo> {
         parts
     }
 
+    pub fn draw_context_hint(&self, f: &mut Frame, area: Rect) {
+        let actions = match self.mode() {
+            AppMode::BrowseRefs => {
+                vec![
+                    NavigationAction::Exit,
+                    NavigationAction::Back,
+                    NavigationAction::Select,
+                ]
+            }
+            AppMode::ViewBlob => {
+                vec![
+                    NavigationAction::Exit,
+                    NavigationAction::Back,
+                    NavigationAction::ExternalEditor,
+                ]
+            }
+            _ => {
+                vec![
+                    NavigationAction::Exit,
+                    NavigationAction::Back,
+                    NavigationAction::Select,
+                    NavigationAction::ExternalEditor,
+                ]
+            }
+        };
+        let keys_hint = actions
+            .iter()
+            .map(|a| ActionInfo::from(a).to_string())
+            .collect::<Vec<String>>()
+            .join(" | ");
+        let content = Span::styled(keys_hint, Style::default());
+        let block = Block::default()
+            .padding(Padding::horizontal(1))
+            .style(Style::default().fg(Color::Black).bg(Color::Gray));
+        let hint = Paragraph::new(Line::from(content)).block(block);
+        f.render_widget(hint, area);
+    }
+
     pub fn draw(&mut self, f: &mut Frame, area: Rect) {
         let title = Title::from(self.title());
         let content_block = Block::default()
@@ -253,6 +294,8 @@ impl<'repo> App<'repo> {
             // Handled above
             NavigationAction::Select => {}
             NavigationAction::Back => {}
+            // Handled outside of app
+            NavigationAction::Exit => {}
         }
         Ok(Redraw(false))
     }

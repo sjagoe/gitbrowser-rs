@@ -1,8 +1,5 @@
 use ratatui::{
     layout::{Constraint, Direction, Layout, Rect},
-    style::{Color, Style},
-    text::{Line, Span},
-    widgets::{Block, Borders, Paragraph},
     Frame,
 };
 
@@ -12,17 +9,11 @@ pub fn ui(f: &mut Frame, app: &mut App) {
     // Create the layout sections.
     let chunks = Layout::default()
         .direction(Direction::Vertical)
-        .constraints([Constraint::Min(4), Constraint::Length(3)])
+        .constraints([Constraint::Min(4), Constraint::Length(1)])
         .split(f.size());
 
     app.draw(f, chunks[0]);
-
-    let current_keys_hint = Span::styled("(^x) exit | (^g) back", Style::default().fg(Color::Red));
-
-    let key_notes_footer =
-        Paragraph::new(Line::from(current_keys_hint)).block(Block::default().borders(Borders::ALL));
-
-    f.render_widget(key_notes_footer, chunks[1]);
+    app.draw_context_hint(f, chunks[1]);
 
     // if let Some(editing) = &app.currently_editing {
     //     let popup_block = Block::default()

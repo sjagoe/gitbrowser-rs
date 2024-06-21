@@ -1,3 +1,5 @@
+use std::fmt;
+
 use crossterm::event::{KeyCode, KeyEvent, KeyModifiers};
 
 #[derive(Debug)]
@@ -11,7 +13,13 @@ pub enum NavigationAction {
     NextSelection,
     PreviousSelection,
     ExternalEditor,
+    Exit,
     Invalid,
+}
+
+pub struct ActionInfo {
+    key: String,
+    name: String,
 }
 
 impl From<KeyEvent> for NavigationAction {
@@ -36,5 +44,40 @@ impl From<KeyEvent> for NavigationAction {
                 }
             }
         }
+    }
+}
+
+impl From<NavigationAction> for ActionInfo {
+    fn from(action: NavigationAction) -> ActionInfo {
+        ActionInfo::from(&action)
+    }
+}
+
+impl From<&NavigationAction> for ActionInfo {
+    fn from(action: &NavigationAction) -> ActionInfo {
+        let (key, name) = match action {
+            NavigationAction::Select => ("Enter", "Select"),
+            NavigationAction::Back => ("C-g", "Back"),
+            NavigationAction::Exit => ("C-x", "Exit"),
+            NavigationAction::Home => ("Home", "Go to the top"),
+            NavigationAction::End => ("End", "Go to the bottom"),
+            NavigationAction::PageUp => ("PgUp", "Page Up"),
+            NavigationAction::PageDown => ("PgDn", "Page Down"),
+            NavigationAction::NextSelection => ("Down", "Select the next item"),
+            NavigationAction::PreviousSelection => ("Up", "Select the previous item"),
+            NavigationAction::ExternalEditor => ("C-e", "Launch external pager for blob"),
+            // We never want to see this but have to define it
+            NavigationAction::Invalid => ("invalid", "invalid"),
+        };
+        ActionInfo {
+            key: key.to_string(),
+            name: name.to_string(),
+        }
+    }
+}
+
+impl fmt::Display for ActionInfo {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        write!(f, "{}: {}", self.key, self.name)
     }
 }
