@@ -59,18 +59,12 @@ impl<'repo> ExternalEditor {
                 }
                 eprintln!("Opening {} with {} ...", self.name, self.editor);
 
-                match self.spawn_editor(&mut tempfile) {
-                    Ok(_) => {}
-                    Err(e) => {
-                        if tui::init().is_err() {
-                            return Err(GitBrowserError::Error(ErrorKind::TerminalInitError));
-                        }
-                        return Err(e);
-                    }
-                }
-
+                let error = self.spawn_editor(&mut tempfile).err();
                 if tui::init().is_err() {
                     return Err(GitBrowserError::Error(ErrorKind::TerminalInitError));
+                }
+                if let Some(e) = error {
+                    return Err(e);
                 }
             }
             Err(_) => {
