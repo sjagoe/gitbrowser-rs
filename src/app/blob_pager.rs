@@ -1,13 +1,20 @@
+use std::ffi::OsStr;
+use std::path::Path;
+
 use git2::{Blob, Object, Repository};
 
 use ratatui::{
     layout::Rect,
-    prelude::{Line, Modifier, Span, Style},
+    prelude::{Color, Line, Modifier, Span, Style},
     widgets::{Block, Paragraph},
     Frame,
 };
 
 use color_eyre::Result;
+
+use syntect::easy::HighlightLines;
+use syntect::parsing::SyntaxSet;
+use syntect::{highlighting, highlighting::ThemeSet};
 
 use crate::errors::{ErrorKind, GitBrowserError};
 use crate::traits::{Drawable, Navigable};
@@ -18,6 +25,18 @@ pub struct BlobPager<'repo> {
     pub blob: Blob<'repo>,
     pub name: String,
     lines: Vec<String>,
+    syntax_set: SyntaxSet,
+    theme_set: ThemeSet,
+}
+
+fn to_color(hcolor: highlighting::Color) -> Color {
+    Color::Rgb(hcolor.r, hcolor.g, hcolor.b)
+}
+
+fn to_style(hstyle: highlighting::Style) -> Style {
+    Style::default()
+        .fg(to_color(hstyle.foreground))
+        .bg(to_color(hstyle.background))
 }
 
 impl<'repo> BlobPager<'repo> {
@@ -27,12 +46,17 @@ impl<'repo> BlobPager<'repo> {
             Err(e) => panic!("unable to decode utf8 {}", e),
         };
         let lines = content.lines().map(|line| line.to_string()).collect();
+        // Load these once at the start of your program
+        let syntax_set = SyntaxSet::load_defaults_newlines();
+        let theme_set = ThemeSet::load_defaults();
         BlobPager {
             top: 0,
             // repo: repo,
             blob: blob.clone(),
             name,
             lines,
+            syntax_set,
+            theme_set,
         }
     }
 
@@ -55,7 +79,27 @@ impl<'repo> BlobPager<'repo> {
 }
 
 impl<'repo> Drawable<'repo> for BlobPager<'repo> {
-    fn draw(&self, f: &mut Frame, area: Rect, content_block: Block) -> Rect {
+    fn draw(&self, f: &mut Frame, area: Rect, content_block_ext: Block) -> Rect {
+        let syntax = match Path::new(&self.name).extension().and_then(OsStr::to_str) {
+            Some(ext) => self.syntax_set.find_syntax_by_extension(ext),
+            _ => match self.lines.first() {
+                Some(line) => self.syntax_set.find_syntax_by_first_line(&line),
+                _ => None,
+            },
+        };
+        let style = match syntax {
+            Some(_) => {
+                let theme = &self.theme_set.themes["base16-ocean.dark"];
+                if let Some(color) = theme.settings.background {
+                    Style::default().bg(to_color(color))
+                } else {
+                    Style::default()
+                }
+            }
+            _ => Style::default(),
+        };
+        let content_block = content_block_ext.style(style);
+
         let viewport = content_block.inner(area);
         let height: usize = viewport.height.into();
         let bottom = if self.top + height > self.lines.len() {
@@ -73,6 +117,15 @@ impl<'repo> Drawable<'repo> for BlobPager<'repo> {
         } else {
             vec![]
         };
+
+        let mut highlighter = match syntax {
+            Some(syntax) => Some(HighlightLines::new(
+                syntax,
+                &self.theme_set.themes["base16-ocean.dark"],
+            )),
+            _ => None,
+        };
+
         let lines: Vec<Line> = self.lines[self.top..bottom]
             .iter()
             .enumerate()
@@ -81,7 +134,23 @@ impl<'repo> Drawable<'repo> for BlobPager<'repo> {
                 let width = tmp.len();
                 let formatted = format!("{:width$} | ", index + self.top);
                 let lineno = Span::styled(formatted, Style::default().add_modifier(Modifier::DIM));
-                Line::from(vec![lineno, Span::from(text)])
+
+                let mut parts = match &mut highlighter {
+                    Some(h) => {
+                        let mut parts = Vec::<Span>::new();
+                        let ranges: Vec<(highlighting::Style, &str)> =
+                            h.highlight_line(text, &self.syntax_set).unwrap();
+                        for (style, part) in ranges.iter() {
+                            parts.push(Span::styled(*part, to_style(style.clone())));
+                        }
+                        parts
+                    }
+                    _ => vec![Span::from(text)],
+                };
+                let mut line = vec![lineno];
+                line.append(&mut parts);
+
+                Line::from(line)
             })
             .collect();
         let filled_lines: Vec<Line> = lines
