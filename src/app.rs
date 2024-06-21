@@ -183,10 +183,10 @@ impl<'repo> App<'repo> {
             .map(|a| ActionInfo::from(a).to_string())
             .collect::<Vec<String>>()
             .join(" | ");
-        let content = Span::styled(keys_hint, Style::default().fg(Color::Red));
+        let content = Span::styled(keys_hint, Style::default());
         let block = Block::default()
             .padding(Padding::horizontal(1))
-            .borders(Borders::ALL);
+            .style(Style::default().fg(Color::Black).bg(Color::Gray));
         let hint = Paragraph::new(Line::from(content)).block(block);
         f.render_widget(hint, area);
     }

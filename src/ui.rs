@@ -9,7 +9,7 @@ pub fn ui(f: &mut Frame, app: &mut App) {
     // Create the layout sections.
     let chunks = Layout::default()
         .direction(Direction::Vertical)
-        .constraints([Constraint::Min(4), Constraint::Length(3)])
+        .constraints([Constraint::Min(4), Constraint::Length(1)])
         .split(f.size());
 
     app.draw(f, chunks[0]);
