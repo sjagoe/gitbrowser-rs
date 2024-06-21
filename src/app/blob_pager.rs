@@ -50,7 +50,7 @@ impl<'repo> BlobPager<'repo> {
                     Ok(BlobPager::new(repo, blob, name))
                 }
             }
-            Err(_) => panic!("peeling blob"),
+            Err(_) => Err(GitBrowserError::Error(ErrorKind::BlobReferenceError)),
         }
     }
 }

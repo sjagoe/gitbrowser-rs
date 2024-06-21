@@ -42,12 +42,14 @@ impl GitBrowserError {
 #[derive(Clone, Copy, Debug, Eq, Hash, Ord, PartialEq, PartialOrd)]
 pub enum ErrorKind {
     BinaryFileError,
+    BlobReferenceError,
 }
 
 impl ErrorKind {
     pub fn as_str(&self) -> &str {
         match *self {
             ErrorKind::BinaryFileError => "Unable to load and display binary files",
+            ErrorKind::BlobReferenceError => "Unable to load blob from repository",
         }
     }
 }

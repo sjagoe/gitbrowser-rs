@@ -30,7 +30,7 @@ use crate::{
         blob_pager::BlobPager, external_editor::ExternalEditor, navigation::NavigationAction,
         refs_page::RefsPage, tree_page::TreePage,
     },
-    errors::GitBrowserError,
+    errors::{ErrorKind, GitBrowserError},
 };
 
 pub enum AppMode {
@@ -357,7 +357,9 @@ impl<'repo> App<'repo> {
 
                     let blob = match object.into_blob() {
                         Ok(blob) => blob,
-                        Err(_) => panic!("peeling blob"),
+                        Err(_) => {
+                            return Err(GitBrowserError::Error(ErrorKind::BlobReferenceError));
+                        }
                     };
 
                     Some(ExternalEditor::new(&blob, &name, &self.editor))
