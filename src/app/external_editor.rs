@@ -13,7 +13,6 @@ pub struct ExternalEditor {
     content: Vec<u8>,
 }
 
-
 impl<'repo> ExternalEditor {
     pub fn new(blob: &'repo Blob, name: &str, editor: &str) -> Self {
         ExternalEditor {

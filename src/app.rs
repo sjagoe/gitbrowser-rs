@@ -27,9 +27,8 @@ mod tree_page;
 
 use crate::{
     app::{
-        blob_pager::BlobPager, external_editor::ExternalEditor,
-        navigation::NavigationAction, refs_page::RefsPage,
-        tree_page::TreePage,
+        blob_pager::BlobPager, external_editor::ExternalEditor, navigation::NavigationAction,
+        refs_page::RefsPage, tree_page::TreePage,
     },
     errors::GitBrowserError,
 };
@@ -328,7 +327,8 @@ impl<'repo> App<'repo> {
     pub fn view_blob(&mut self) {
         if matches!(self.mode(), AppMode::ViewBlob) {
             if let Some(pager) = &self.blob_pager {
-                self.external_editor = Some(ExternalEditor::new(&pager.blob, &pager.name, "emacsclient"));
+                self.external_editor =
+                    Some(ExternalEditor::new(&pager.blob, &pager.name, "emacsclient"));
                 self.mode_history.push(AppMode::ExternalEditor);
                 if let Some(external_editor) = &mut self.external_editor {
                     external_editor.display();
