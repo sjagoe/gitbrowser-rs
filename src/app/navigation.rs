@@ -1,5 +1,6 @@
 use crossterm::event::{KeyCode, KeyEvent, KeyModifiers};
 
+#[derive(Debug)]
 pub enum NavigationAction {
     Select,
     Back,

@@ -33,6 +33,7 @@ use crate::{
     errors::{ErrorKind, GitBrowserError},
 };
 
+#[derive(Debug)]
 pub enum AppMode {
     BrowseRefs,
     BrowseTrees,
@@ -373,7 +374,10 @@ impl<'repo> App<'repo> {
         };
         self.mode_history.push(AppMode::ExternalEditor);
         if let Some(external_editor) = &mut self.external_editor {
-            external_editor.display()?;
+            if let Some(e) = external_editor.display().err() {
+                self.back();
+                return Err(e);
+            };
         }
         // We need to go back to the previous mode after the blocking editor display
         self.back();
