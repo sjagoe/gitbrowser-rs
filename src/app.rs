@@ -52,10 +52,11 @@ pub struct App<'repo> {
     mode_history: Vec<AppMode>,
     height: u16,
     active_error: Option<GitBrowserError>,
+    editor: String,
 }
 
 impl<'repo> App<'repo> {
-    pub fn new(repo: &'repo Repository, commit_object: Option<Object<'repo>>) -> App<'repo> {
+    pub fn new(repo: &'repo Repository, commit_object: Option<Object<'repo>>, editor: String) -> App<'repo> {
         let mut new = App {
             search_input: String::new(),
             repo,
@@ -67,6 +68,7 @@ impl<'repo> App<'repo> {
             mode_history: vec![AppMode::BrowseRefs],
             height: 0,
             active_error: None,
+            editor,
         };
         if let Some(object) = &commit_object {
             match object.peel_to_commit() {
@@ -328,7 +330,7 @@ impl<'repo> App<'repo> {
         if matches!(self.mode(), AppMode::ViewBlob) {
             if let Some(pager) = &self.blob_pager {
                 self.external_editor =
-                    Some(ExternalEditor::new(&pager.blob, &pager.name, "emacsclient"));
+                    Some(ExternalEditor::new(&pager.blob, &pager.name, &self.editor));
                 self.mode_history.push(AppMode::ExternalEditor);
                 if let Some(external_editor) = &mut self.external_editor {
                     external_editor.display();

@@ -1,3 +1,5 @@
+use std::env;
+
 use crossterm::event::{self, Event, KeyCode, KeyEventKind, KeyModifiers};
 use ratatui::{backend::Backend, Terminal};
 
@@ -24,6 +26,9 @@ struct Args {
 
     #[arg(short, long)]
     commit_id: Option<String>,
+
+    #[arg(short, long)]
+    pager: Option<String>,
 }
 
 fn main() -> Result<()> {
@@ -48,8 +53,19 @@ fn main() -> Result<()> {
         _ => None,
     };
 
+    let pager = match args.pager {
+        Some(pager) => pager,
+        None => {
+            if let Some(pager) = env::var_os("PAGER") {
+                pager.into_string().expect("Unable to decode PAGER env var")
+            } else {
+                "less".to_string()
+            }
+        }
+    };
+
     let mut terminal = tui::init()?;
-    let mut app = App::new(&repo, commit);
+    let mut app = App::new(&repo, commit, pager);
     run_app(&mut terminal, &mut app)?;
     tui::restore()?;
     Ok(())
