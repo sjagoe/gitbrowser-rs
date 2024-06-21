@@ -22,12 +22,11 @@ pub struct BlobPager<'repo> {
 
 impl<'repo> BlobPager<'repo> {
     pub fn new(_repo: &'repo Repository, blob: Blob<'repo>, name: String) -> BlobPager<'repo> {
-        let content = blob.content();
-        let utf8content = match std::str::from_utf8(content) {
+        let content = match std::str::from_utf8(blob.content()) {
             Ok(v) => v,
             Err(e) => panic!("unable to decode utf8 {}", e),
         };
-        let lines = utf8content.lines().map(|line| line.to_string()).collect();
+        let lines = content.lines().map(|line| line.to_string()).collect();
         BlobPager {
             top: 0,
             // repo: repo,
