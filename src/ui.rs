@@ -8,17 +8,14 @@ use ratatui::{
 
 use crate::app::App;
 
-pub fn ui(f: &mut Frame, app: &App, footer_min: u16, box_border: u16) {
+pub fn ui(f: &mut Frame, app: &mut App) {
     // Create the layout sections.
     let chunks = Layout::default()
         .direction(Direction::Vertical)
-        .constraints([
-            Constraint::Min(box_border + 2),
-            Constraint::Length(footer_min),
-        ])
+        .constraints([Constraint::Min(4), Constraint::Length(3)])
         .split(f.size());
 
-    app.draw(f, chunks[0], footer_min + box_border);
+    app.draw(f, chunks[0]);
 
     let current_keys_hint = Span::styled("(^x) exit | (^g) back", Style::default().fg(Color::Red));
 

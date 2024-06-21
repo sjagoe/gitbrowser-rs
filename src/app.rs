@@ -137,7 +137,7 @@ impl<'repo> App<'repo> {
         parts
     }
 
-    pub fn draw(&self, f: &mut Frame, area: Rect, reserved_rows: u16) {
+    pub fn draw(&mut self, f: &mut Frame, area: Rect) {
         let title = Title::from(self.title());
         let content_block = Block::default()
             .padding(Padding::horizontal(1))
@@ -145,7 +145,7 @@ impl<'repo> App<'repo> {
             .style(Style::default())
             .title(title);
 
-        if let Some(page) = match self.mode.last() {
+        let viewport = if let Some(page) = match self.mode.last() {
             Some(AppMode::BrowseRefs) => Some(Box::<&dyn Drawable>::new(&self.refs_page)),
             Some(AppMode::BrowseTrees) => Some(Box::<&dyn Drawable>::new(
                 self.tree_pages
@@ -159,11 +159,15 @@ impl<'repo> App<'repo> {
             )),
             _ => None,
         } {
-            page.draw(f, area, content_block, reserved_rows);
-        }
+            page.draw(f, area, content_block)
+        } else {
+            content_block.inner(area)
+        };
+
+        self.set_height(viewport.height);
 
         if let Some(error) = self.active_error {
-            self.display_error(f, &error)
+            self.display_error(f, &error);
         }
     }
 

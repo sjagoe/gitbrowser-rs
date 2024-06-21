@@ -26,7 +26,7 @@ pub trait Navigable<'repo> {
 }
 
 pub trait Drawable<'repo> {
-    fn draw(&self, f: &mut Frame, area: Rect, content_block: Block, reserved_rows: u16);
+    fn draw(&self, f: &mut Frame, area: Rect, content_block: Block) -> Rect;
 
     fn title(&self) -> String;
 }
