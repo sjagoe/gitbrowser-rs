@@ -91,7 +91,7 @@ fn run_app<B: Backend>(terminal: &mut Terminal<B>, app: &mut App) -> Result<bool
             }
             let navigation_action = NavigationAction::from(key);
             clear = matches!(navigation_action, NavigationAction::ExternalEditor);
-            if let Err(error) = app.navigate(navigation_action) {
+            if let Err(error) = app.navigate(&navigation_action) {
                 app.error(error);
             }
         }

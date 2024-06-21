@@ -201,14 +201,18 @@ impl<'repo> App<'repo> {
         f.render_widget(content, area);
     }
 
-    pub fn navigate(&mut self, action: NavigationAction) -> Result<(), GitBrowserError> {
+    pub fn navigate(&mut self, action: &NavigationAction) -> Result<(), GitBrowserError> {
         // Handle Select and Back on self and exit early
-        match action {
-            NavigationAction::Select => {
+        match (action, self.mode()) {
+            (NavigationAction::ExternalEditor, AppMode::BrowseTrees) => {
+                self.view_blob();
+                return Ok(());
+            }
+            (NavigationAction::Select, _) => {
                 self.select()?;
                 return Ok(());
             }
-            NavigationAction::Back => {
+            (NavigationAction::Back, _) => {
                 self.back();
                 return Ok(());
             }
@@ -331,18 +335,45 @@ impl<'repo> App<'repo> {
     }
 
     pub fn view_blob(&mut self) {
-        if matches!(self.mode(), AppMode::ViewBlob) {
-            if let Some(pager) = &self.blob_pager {
-                self.external_editor =
-                    Some(ExternalEditor::new(&pager.blob, &pager.name, &self.editor));
-                self.mode_history.push(AppMode::ExternalEditor);
-                if let Some(external_editor) = &mut self.external_editor {
-                    external_editor.display();
+        self.external_editor = match self.mode() {
+            AppMode::ViewBlob => {
+                if let Some(pager) = &self.blob_pager {
+                    Some(ExternalEditor::new(&pager.blob, &pager.name, &self.editor))
+                } else {
+                    return;
                 }
-                // We need to go back to the previous mode after the blocking editor display
-                self.back();
             }
+            AppMode::BrowseTrees => {
+                if let Some(page) = self.tree_pages.last() {
+                    let (object, name) = match page.select() {
+                        Some(selection) => selection,
+                        None => return,
+                    };
+
+                    if !matches!(object.kind(), Some(ObjectType::Blob)) {
+                        return;
+                    }
+
+                    let blob = match object.into_blob() {
+                        Ok(blob) => blob,
+                        Err(_) => panic!("peeling blob"),
+                    };
+
+                    Some(ExternalEditor::new(&blob, &name, &self.editor))
+                } else {
+                    return;
+                }
+            }
+            _ => {
+                return;
+            }
+        };
+        self.mode_history.push(AppMode::ExternalEditor);
+        if let Some(external_editor) = &mut self.external_editor {
+            external_editor.display();
         }
+        // We need to go back to the previous mode after the blocking editor display
+        self.back();
     }
 
     pub fn mode(&self) -> &AppMode {
