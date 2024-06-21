@@ -346,31 +346,27 @@ impl<'repo> App<'repo> {
                 }
             }
             AppMode::BrowseTrees => {
-                if let Some(page) = self.tree_pages.last() {
-                    let (object, name) = match page.select() {
-                        Some(selection) => selection,
-                        None => return Ok(false),
-                    };
+                let page = match self.tree_pages.last() {
+                    Some(page) => page,
+                    None => return Ok(false),
+                };
 
-                    if !matches!(object.kind(), Some(ObjectType::Blob)) {
-                        return Ok(false);
-                    }
+                let (object, name) = match page.select() {
+                    Some(selection) => selection,
+                    None => return Ok(false),
+                };
 
-                    let blob = match object.into_blob() {
-                        Ok(blob) => blob,
-                        Err(_) => {
-                            return Err(GitBrowserError::Error(ErrorKind::BlobReferenceError));
-                        }
-                    };
-
-                    Some(ExternalEditor::new(&blob, &name, &self.editor))
-                } else {
+                if !matches!(object.kind(), Some(ObjectType::Blob)) {
                     return Ok(false);
                 }
+
+                let blob = object
+                    .into_blob()
+                    .map_err(|_| GitBrowserError::Error(ErrorKind::BlobReferenceError))?;
+
+                Some(ExternalEditor::new(&blob, &name, &self.editor))
             }
-            _ => {
-                return Ok(false);
-            }
+            _ => return Ok(false),
         };
         self.mode_history.push(AppMode::ExternalEditor);
         if let Some(external_editor) = &mut self.external_editor {
