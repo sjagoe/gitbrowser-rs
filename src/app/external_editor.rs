@@ -31,24 +31,16 @@ impl<'repo> ExternalEditor {
         let file = tempfile.as_file_mut();
         file.write_all(&self.content).expect("failed to write file");
 
-        let mut command = match Command::new(&self.editor).arg(tempfile.path()).spawn() {
-            Ok(command) => command,
-            Err(_) => {
-                return Err(GitBrowserError::Error(ErrorKind::SubprocessError));
-            }
-        };
+        let mut command = Command::new(&self.editor).arg(tempfile.path()).spawn()
+            .map_err(|_| GitBrowserError::Error(ErrorKind::SubprocessError))?;
 
-        let status = match command.wait() {
-            Ok(status) => status,
-            Err(_) => {
-                return Err(GitBrowserError::Error(ErrorKind::SubprocessError));
-            }
-        };
+        let status = command.wait().map_err(|_| GitBrowserError::Error(ErrorKind::SubprocessError))?;
 
-        if !status.success() {
-            return Err(GitBrowserError::Error(ErrorKind::SubprocessError));
+        if status.success() {
+            Ok(())
+        } else {
+            Err(GitBrowserError::Error(ErrorKind::SubprocessError))
         }
-        Ok(())
     }
 
     pub fn display(&self) -> Result<(), GitBrowserError> {
