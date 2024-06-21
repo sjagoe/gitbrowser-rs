@@ -155,6 +155,13 @@ impl<'repo> App<'repo> {
 
     pub fn draw_context_hint(&self, f: &mut Frame, area: Rect) {
         let actions = match self.mode() {
+            AppMode::BrowseRefs => {
+                vec![
+                    NavigationAction::Exit,
+                    NavigationAction::Back,
+                    NavigationAction::Select,
+                ]
+            }
             AppMode::ViewBlob => {
                 vec![
                     NavigationAction::Exit,
