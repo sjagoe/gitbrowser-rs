@@ -33,11 +33,11 @@ impl<'repo> ExternalEditor {
                 let mut emacsclient = Command::new(&self.editor)
                     .arg(tempfile.path())
                     .spawn()
-                    .expect("failed to run emacsclient");
+                    .expect("failed to run external pager");
 
                 let ecode = emacsclient
                     .wait()
-                    .expect("failed waiting for emacsclient to exit");
+                    .expect("failed waiting for pager to exit");
 
                 assert!(ecode.success());
                 tui::init().expect("failed to reinit terminal");
