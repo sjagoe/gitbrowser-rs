@@ -45,3 +45,14 @@ jobs:
         env:
           TOOLCHAIN: ${{ matrix.toolchain }}
       - run: cargo build --verbose
+
+  cargo-fmt:
+    name: Cargo format check
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - run: rustup update "$TOOLCHAIN" && rustup default "$TOOLCHAIN"
+        env:
+          TOOLCHAIN: stable
+      - run: cargo fmt --check
