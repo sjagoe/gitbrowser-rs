@@ -373,7 +373,7 @@ impl<'repo> App<'repo> {
         };
         self.mode_history.push(AppMode::ExternalEditor);
         if let Some(external_editor) = &mut self.external_editor {
-            external_editor.display();
+            external_editor.display()?;
         }
         // We need to go back to the previous mode after the blocking editor display
         self.back();

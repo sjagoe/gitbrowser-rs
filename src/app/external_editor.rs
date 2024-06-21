@@ -1,11 +1,16 @@
 use std::io::Write as _;
 use std::process::Command;
 
+use color_eyre::Result;
+
 use git2::Blob;
 
 use tempfile::Builder;
 
-use crate::tui;
+use crate::{
+    errors::{ErrorKind, GitBrowserError},
+    tui,
+};
 
 pub struct ExternalEditor {
     editor: String,
@@ -22,28 +27,42 @@ impl<'repo> ExternalEditor {
         }
     }
 
-    pub fn display(&self) {
+    pub fn display(&self) -> Result<(), GitBrowserError> {
         match Builder::new().suffix(&self.name).tempfile() {
             Ok(mut tempfile) => {
-                tui::restore().expect("failed to restore terminal");
+                if tui::restore().is_err() {
+                    return Err(GitBrowserError::Error(ErrorKind::TerminalInitError));
+                }
                 eprintln!("Opening {} with {} ...", self.name, self.editor);
                 let file = tempfile.as_file_mut();
                 file.write_all(&self.content).expect("failed to write file");
 
-                let mut emacsclient = Command::new(&self.editor)
-                    .arg(tempfile.path())
-                    .spawn()
-                    .expect("failed to run external pager");
+                let mut command = match Command::new(&self.editor).arg(tempfile.path()).spawn() {
+                    Ok(command) => command,
+                    Err(_) => {
+                        return Err(GitBrowserError::Error(ErrorKind::SubprocessError));
+                    }
+                };
 
-                let ecode = emacsclient
-                    .wait()
-                    .expect("failed waiting for pager to exit");
+                let status = match command.wait() {
+                    Ok(status) => status,
+                    Err(_) => {
+                        return Err(GitBrowserError::Error(ErrorKind::SubprocessError));
+                    }
+                };
 
-                assert!(ecode.success());
-                tui::init().expect("failed to reinit terminal");
+                if !status.success() {
+                    return Err(GitBrowserError::Error(ErrorKind::SubprocessError));
+                }
+
+                if tui::init().is_err() {
+                    return Err(GitBrowserError::Error(ErrorKind::TerminalInitError));
+                }
             }
-            // We should use a handlable error
-            Err(_) => panic!("unable to create temporary file"),
+            Err(_) => {
+                return Err(GitBrowserError::Error(ErrorKind::TemporaryFileError));
+            }
         }
+        Ok(())
     }
 }
