@@ -19,6 +19,7 @@ use crate::{
 use color_eyre::Result;
 
 mod blob_pager;
+mod external_editor;
 pub mod navigation;
 mod pagination;
 mod refs_page;
@@ -26,16 +27,18 @@ mod tree_page;
 
 use crate::{
     app::{
-        blob_pager::BlobPager, navigation::NavigationAction, refs_page::RefsPage,
+        blob_pager::BlobPager, external_editor::ExternalEditor,
+        navigation::NavigationAction, refs_page::RefsPage,
         tree_page::TreePage,
     },
     errors::GitBrowserError,
 };
 
-enum AppMode {
+pub enum AppMode {
     BrowseRefs,
     BrowseTrees,
     ViewBlob,
+    ExternalEditor,
     Error,
 }
 
@@ -45,8 +48,9 @@ pub struct App<'repo> {
     commit: Option<Commit<'repo>>,
     refs_page: RefsPage<'repo>,
     tree_pages: Vec<TreePage<'repo>>,
-    blob_pager: Option<BlobPager>,
-    mode: Vec<AppMode>,
+    blob_pager: Option<BlobPager<'repo>>,
+    external_editor: Option<ExternalEditor>,
+    mode_history: Vec<AppMode>,
     height: u16,
     active_error: Option<GitBrowserError>,
 }
@@ -56,11 +60,12 @@ impl<'repo> App<'repo> {
         let mut new = App {
             search_input: String::new(),
             repo,
-            refs_page: RefsPage::new(repo),
             commit: None,
+            refs_page: RefsPage::new(repo),
             tree_pages: vec![],
             blob_pager: None,
-            mode: vec![AppMode::BrowseRefs],
+            external_editor: None,
+            mode_history: vec![AppMode::BrowseRefs],
             height: 0,
             active_error: None,
         };
@@ -68,7 +73,7 @@ impl<'repo> App<'repo> {
             match object.peel_to_commit() {
                 Ok(commit) => {
                     new.tree_pages = vec![TreePage::new(repo, object.clone(), "".to_string())];
-                    new.mode = vec![AppMode::BrowseTrees];
+                    new.mode_history = vec![AppMode::BrowseTrees];
                     new.commit = Some(commit.clone());
                 }
                 Err(e) => panic!("Failed to get commit {}", e),
@@ -145,14 +150,14 @@ impl<'repo> App<'repo> {
             .style(Style::default())
             .title(title);
 
-        let viewport = if let Some(page) = match self.mode.last() {
-            Some(AppMode::BrowseRefs) => Some(Box::<&dyn Drawable>::new(&self.refs_page)),
-            Some(AppMode::BrowseTrees) => Some(Box::<&dyn Drawable>::new(
+        let viewport = if let Some(page) = match self.mode() {
+            AppMode::BrowseRefs => Some(Box::<&dyn Drawable>::new(&self.refs_page)),
+            AppMode::BrowseTrees => Some(Box::<&dyn Drawable>::new(
                 self.tree_pages
                     .last()
                     .expect("No tree browsing page in tree mode"),
             )),
-            Some(AppMode::ViewBlob) => Some(Box::<&dyn Drawable>::new(
+            AppMode::ViewBlob => Some(Box::<&dyn Drawable>::new(
                 self.blob_pager
                     .as_ref()
                     .expect("No blob browser page in blob mode"),
@@ -206,14 +211,14 @@ impl<'repo> App<'repo> {
         }
 
         // Handle page navigation
-        let page: Box<&mut dyn Navigable> = match self.mode.last() {
-            Some(AppMode::BrowseRefs) => Box::new(&mut self.refs_page),
-            Some(AppMode::BrowseTrees) => Box::new(
+        let page: Box<&mut dyn Navigable> = match self.mode() {
+            AppMode::BrowseRefs => Box::new(&mut self.refs_page),
+            AppMode::BrowseTrees => Box::new(
                 self.tree_pages
                     .last_mut()
                     .expect("No tree browsing page in tree mode"),
             ),
-            Some(AppMode::ViewBlob) => Box::new(
+            AppMode::ViewBlob => Box::new(
                 self.blob_pager
                     .as_mut()
                     .expect("No blob browser page in blob mode"),
@@ -230,6 +235,7 @@ impl<'repo> App<'repo> {
             NavigationAction::PageDown => page.pagedown(self.height),
             NavigationAction::NextSelection => page.next_selection(),
             NavigationAction::PreviousSelection => page.previous_selection(),
+            NavigationAction::ExternalEditor => self.view_blob(),
             NavigationAction::Invalid => {}
             // Handled above
             NavigationAction::Select => {}
@@ -239,14 +245,14 @@ impl<'repo> App<'repo> {
     }
 
     pub fn select(&mut self) -> Result<(), GitBrowserError> {
-        let page: Box<&mut dyn Navigable> = match self.mode.last() {
-            Some(AppMode::BrowseRefs) => Box::new(&mut self.refs_page),
-            Some(AppMode::BrowseTrees) => Box::new(
+        let page: Box<&mut dyn Navigable> = match self.mode() {
+            AppMode::BrowseRefs => Box::new(&mut self.refs_page),
+            AppMode::BrowseTrees => Box::new(
                 self.tree_pages
                     .last_mut()
                     .expect("No tree browsing page in tree mode"),
             ),
-            Some(AppMode::ViewBlob) => Box::new(
+            AppMode::ViewBlob => Box::new(
                 self.blob_pager
                     .as_mut()
                     .expect("No blob browser page in blob mode"),
@@ -265,19 +271,19 @@ impl<'repo> App<'repo> {
             Some(ObjectType::Blob) => {
                 let pager = BlobPager::from_object(self.repo, object, page.selected_item())?;
                 self.blob_pager = Some(pager);
-                self.mode.push(AppMode::ViewBlob);
+                self.mode_history.push(AppMode::ViewBlob);
                 Ok(())
             }
             Some(ObjectType::Tree) => {
                 self.tree_pages.push(TreePage::new(self.repo, object, name));
-                self.mode.push(AppMode::BrowseTrees);
+                self.mode_history.push(AppMode::BrowseTrees);
                 Ok(())
             }
             Some(ObjectType::Commit) => {
                 let commit = object.peel_to_commit().expect("Unable to peel commit");
                 self.commit = Some(commit);
                 self.tree_pages.push(TreePage::new(self.repo, object, name));
-                self.mode.push(AppMode::BrowseTrees);
+                self.mode_history.push(AppMode::BrowseTrees);
                 Ok(())
             }
             _ => Ok(()),
@@ -285,7 +291,7 @@ impl<'repo> App<'repo> {
     }
 
     pub fn back(&mut self) {
-        if let Some(mode) = self.mode.pop() {
+        if let Some(mode) = self.mode_history.pop() {
             match mode {
                 AppMode::BrowseRefs => {
                     self.tree_pages.pop();
@@ -298,12 +304,15 @@ impl<'repo> App<'repo> {
                 AppMode::ViewBlob => {
                     self.blob_pager = None;
                 }
+                AppMode::ExternalEditor => {
+                    self.external_editor = None;
+                }
                 AppMode::Error => {
                     self.active_error = None;
                 }
             }
-            if self.mode.is_empty() {
-                self.mode.push(mode);
+            if self.mode_history.is_empty() {
+                self.mode_history.push(mode);
             }
         }
         if self.tree_pages.is_empty() {
@@ -313,6 +322,19 @@ impl<'repo> App<'repo> {
 
     pub fn error(&mut self, error: GitBrowserError) {
         self.active_error = Some(error);
-        self.mode.push(AppMode::Error);
+        self.mode_history.push(AppMode::Error);
+    }
+
+    pub fn view_blob(&mut self) {
+        if matches!(self.mode(), AppMode::ViewBlob) {
+            if let Some(pager) = &self.blob_pager {
+                self.external_editor = Some(ExternalEditor::new(&pager.blob, &pager.name, "emacsclient"));
+                self.mode_history.push(AppMode::ExternalEditor);
+            }
+        }
+    }
+
+    pub fn mode(&self) -> &AppMode {
+        self.mode_history.last().expect("no application mode found")
     }
 }
