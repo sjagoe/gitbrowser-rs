@@ -201,20 +201,19 @@ impl<'repo> App<'repo> {
         f.render_widget(content, area);
     }
 
-    pub fn navigate(&mut self, action: &NavigationAction) -> Result<(), GitBrowserError> {
+    pub fn navigate(&mut self, action: &NavigationAction) -> Result<bool, GitBrowserError> {
         // Handle Select and Back on self and exit early
         match (action, self.mode()) {
             (NavigationAction::ExternalEditor, AppMode::BrowseTrees) => {
-                self.view_blob();
-                return Ok(());
+                return self.view_blob();
             }
             (NavigationAction::Select, _) => {
                 self.select()?;
-                return Ok(());
+                return Ok(false);
             }
             (NavigationAction::Back, _) => {
                 self.back();
-                return Ok(());
+                return Ok(false);
             }
             _ => {}
         }
@@ -233,7 +232,7 @@ impl<'repo> App<'repo> {
                     .expect("No blob browser page in blob mode"),
             ),
             _ => {
-                return Ok(());
+                return Ok(false);
             }
         };
 
@@ -244,13 +243,15 @@ impl<'repo> App<'repo> {
             NavigationAction::PageDown => page.pagedown(self.height),
             NavigationAction::NextSelection => page.next_selection(),
             NavigationAction::PreviousSelection => page.previous_selection(),
-            NavigationAction::ExternalEditor => self.view_blob(),
+            NavigationAction::ExternalEditor => {
+                return self.view_blob();
+            }
             NavigationAction::Invalid => {}
             // Handled above
             NavigationAction::Select => {}
             NavigationAction::Back => {}
         }
-        Ok(())
+        Ok(false)
     }
 
     pub fn select(&mut self) -> Result<(), GitBrowserError> {
@@ -334,24 +335,24 @@ impl<'repo> App<'repo> {
         self.mode_history.push(AppMode::Error);
     }
 
-    pub fn view_blob(&mut self) {
+    pub fn view_blob(&mut self) -> Result<bool, GitBrowserError> {
         self.external_editor = match self.mode() {
             AppMode::ViewBlob => {
                 if let Some(pager) = &self.blob_pager {
                     Some(ExternalEditor::new(&pager.blob, &pager.name, &self.editor))
                 } else {
-                    return;
+                    return Ok(false);
                 }
             }
             AppMode::BrowseTrees => {
                 if let Some(page) = self.tree_pages.last() {
                     let (object, name) = match page.select() {
                         Some(selection) => selection,
-                        None => return,
+                        None => return Ok(false),
                     };
 
                     if !matches!(object.kind(), Some(ObjectType::Blob)) {
-                        return;
+                        return Ok(false);
                     }
 
                     let blob = match object.into_blob() {
@@ -361,11 +362,11 @@ impl<'repo> App<'repo> {
 
                     Some(ExternalEditor::new(&blob, &name, &self.editor))
                 } else {
-                    return;
+                    return Ok(false);
                 }
             }
             _ => {
-                return;
+                return Ok(false);
             }
         };
         self.mode_history.push(AppMode::ExternalEditor);
@@ -374,6 +375,7 @@ impl<'repo> App<'repo> {
         }
         // We need to go back to the previous mode after the blocking editor display
         self.back();
+        Ok(true)
     }
 
     pub fn mode(&self) -> &AppMode {
