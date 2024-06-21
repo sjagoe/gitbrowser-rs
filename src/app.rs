@@ -56,7 +56,11 @@ pub struct App<'repo> {
 }
 
 impl<'repo> App<'repo> {
-    pub fn new(repo: &'repo Repository, commit_object: Option<Object<'repo>>, editor: String) -> App<'repo> {
+    pub fn new(
+        repo: &'repo Repository,
+        commit_object: Option<Object<'repo>>,
+        editor: String,
+    ) -> App<'repo> {
         let mut new = App {
             search_input: String::new(),
             repo,
