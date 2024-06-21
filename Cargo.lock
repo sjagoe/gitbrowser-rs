@@ -397,6 +397,7 @@ dependencies = [
  "ratatui",
  "syntect",
  "tempfile",
+ "two-face",
 ]
 
 [[package]]
@@ -1219,6 +1220,17 @@ dependencies = [
  "sharded-slab",
  "thread_local",
  "tracing-core",
+]
+
+[[package]]
+name = "two-face"
+version = "0.4.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "0ccd4843ea031c609fe9c16cae00e9657bad8a9f735a3cc2e420955d802b4268"
+dependencies = [
+ "once_cell",
+ "serde",
+ "syntect",
 ]
 
 [[package]]

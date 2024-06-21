@@ -13,8 +13,9 @@ use ratatui::{
 use color_eyre::Result;
 
 use syntect::easy::HighlightLines;
+use syntect::highlighting;
 use syntect::parsing::SyntaxSet;
-use syntect::{highlighting, highlighting::ThemeSet};
+use two_face::re_exports::syntect;
 
 use crate::errors::{ErrorKind, GitBrowserError};
 use crate::traits::{Drawable, Navigable};
@@ -26,7 +27,7 @@ pub struct BlobPager<'repo> {
     pub name: String,
     lines: Vec<String>,
     syntax_set: SyntaxSet,
-    theme_set: ThemeSet,
+    theme_set: two_face::theme::EmbeddedLazyThemeSet,
 }
 
 fn to_color(hcolor: highlighting::Color) -> Color {
@@ -47,8 +48,8 @@ impl<'repo> BlobPager<'repo> {
         };
         let lines = content.lines().map(|line| line.to_string()).collect();
         // Load these once at the start of your program
-        let syntax_set = SyntaxSet::load_defaults_newlines();
-        let theme_set = ThemeSet::load_defaults();
+        let syntax_set = two_face::syntax::extra_newlines();
+        let theme_set = two_face::theme::extra();
         BlobPager {
             top: 0,
             // repo: repo,
@@ -87,9 +88,9 @@ impl<'repo> Drawable<'repo> for BlobPager<'repo> {
                 _ => None,
             },
         };
+        let theme = &self.theme_set.get(two_face::theme::EmbeddedThemeName::Nord);
         let style = match syntax {
             Some(_) => {
-                let theme = &self.theme_set.themes["base16-ocean.dark"];
                 if let Some(color) = theme.settings.background {
                     Style::default().bg(to_color(color))
                 } else {
@@ -119,10 +120,7 @@ impl<'repo> Drawable<'repo> for BlobPager<'repo> {
         };
 
         let mut highlighter = match syntax {
-            Some(syntax) => Some(HighlightLines::new(
-                syntax,
-                &self.theme_set.themes["base16-ocean.dark"],
-            )),
+            Some(syntax) => Some(HighlightLines::new(syntax, theme)),
             _ => None,
         };
 
