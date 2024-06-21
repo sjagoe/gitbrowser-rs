@@ -31,10 +31,14 @@ impl<'repo> ExternalEditor {
         let file = tempfile.as_file_mut();
         file.write_all(&self.content).expect("failed to write file");
 
-        let mut command = Command::new(&self.editor).arg(tempfile.path()).spawn()
+        let mut command = Command::new(&self.editor)
+            .arg(tempfile.path())
+            .spawn()
             .map_err(|_| GitBrowserError::Error(ErrorKind::SubprocessError))?;
 
-        let status = command.wait().map_err(|_| GitBrowserError::Error(ErrorKind::SubprocessError))?;
+        let status = command
+            .wait()
+            .map_err(|_| GitBrowserError::Error(ErrorKind::SubprocessError))?;
 
         if status.success() {
             Ok(())
@@ -44,7 +48,9 @@ impl<'repo> ExternalEditor {
     }
 
     pub fn display(&self) -> Result<(), GitBrowserError> {
-        let mut tempfile = Builder::new().suffix(&self.name).tempfile()
+        let mut tempfile = Builder::new()
+            .suffix(&self.name)
+            .tempfile()
             .map_err(|_| GitBrowserError::Error(ErrorKind::TemporaryFileError))?;
 
         tui::restore().map_err(|_| GitBrowserError::Error(ErrorKind::TerminalInitError))?;
