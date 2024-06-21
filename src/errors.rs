@@ -41,21 +41,21 @@ impl GitBrowserError {
 
 #[derive(Clone, Copy, Debug, Eq, Hash, Ord, PartialEq, PartialOrd)]
 pub enum ErrorKind {
-    BinaryFileError,
-    BlobReferenceError,
-    SubprocessError,
-    TemporaryFileError,
-    TerminalInitError,
+    BinaryFile,
+    BlobReference,
+    Subprocess,
+    TemporaryFile,
+    TerminalInit,
 }
 
 impl ErrorKind {
     pub fn as_str(&self) -> &str {
         match *self {
-            ErrorKind::BinaryFileError => "Unable to load and display binary files",
-            ErrorKind::BlobReferenceError => "Unable to load blob from repository",
-            ErrorKind::SubprocessError => "Failed to execute subprocess",
-            ErrorKind::TemporaryFileError => "Failed to write temporary file",
-            ErrorKind::TerminalInitError => "Failed to reinitialize terminal",
+            ErrorKind::BinaryFile => "Unable to load and display binary files",
+            ErrorKind::BlobReference => "Unable to load blob from repository",
+            ErrorKind::Subprocess => "Failed to execute subprocess",
+            ErrorKind::TemporaryFile => "Failed to write temporary file",
+            ErrorKind::TerminalInit => "Failed to reinitialize terminal",
         }
     }
 }

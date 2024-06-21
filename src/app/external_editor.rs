@@ -34,16 +34,16 @@ impl<'repo> ExternalEditor {
         let mut command = Command::new(&self.editor)
             .arg(tempfile.path())
             .spawn()
-            .map_err(|_| GitBrowserError::Error(ErrorKind::SubprocessError))?;
+            .map_err(|_| GitBrowserError::Error(ErrorKind::Subprocess))?;
 
         let status = command
             .wait()
-            .map_err(|_| GitBrowserError::Error(ErrorKind::SubprocessError))?;
+            .map_err(|_| GitBrowserError::Error(ErrorKind::Subprocess))?;
 
         if status.success() {
             Ok(())
         } else {
-            Err(GitBrowserError::Error(ErrorKind::SubprocessError))
+            Err(GitBrowserError::Error(ErrorKind::Subprocess))
         }
     }
 
@@ -51,13 +51,13 @@ impl<'repo> ExternalEditor {
         let mut tempfile = Builder::new()
             .suffix(&self.name)
             .tempfile()
-            .map_err(|_| GitBrowserError::Error(ErrorKind::TemporaryFileError))?;
+            .map_err(|_| GitBrowserError::Error(ErrorKind::TemporaryFile))?;
 
-        tui::restore().map_err(|_| GitBrowserError::Error(ErrorKind::TerminalInitError))?;
+        tui::restore().map_err(|_| GitBrowserError::Error(ErrorKind::TerminalInit))?;
         eprintln!("Opening {} with {} ...", self.name, self.editor);
 
         let error = self.spawn_editor(&mut tempfile).err();
-        tui::init().map_err(|_| GitBrowserError::Error(ErrorKind::TerminalInitError))?;
+        tui::init().map_err(|_| GitBrowserError::Error(ErrorKind::TerminalInit))?;
 
         if let Some(e) = error {
             return Err(e);

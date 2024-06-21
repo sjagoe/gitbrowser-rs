@@ -44,12 +44,12 @@ impl<'repo> BlobPager<'repo> {
         match object.into_blob() {
             Ok(blob) => {
                 if blob.is_binary() {
-                    Err(GitBrowserError::Error(ErrorKind::BinaryFileError))
+                    Err(GitBrowserError::Error(ErrorKind::BinaryFile))
                 } else {
                     Ok(BlobPager::new(repo, blob, name))
                 }
             }
-            Err(_) => Err(GitBrowserError::Error(ErrorKind::BlobReferenceError)),
+            Err(_) => Err(GitBrowserError::Error(ErrorKind::BlobReference)),
         }
     }
 }

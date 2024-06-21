@@ -364,7 +364,7 @@ impl<'repo> App<'repo> {
 
                 let blob = object
                     .into_blob()
-                    .map_err(|_| GitBrowserError::Error(ErrorKind::BlobReferenceError))?;
+                    .map_err(|_| GitBrowserError::Error(ErrorKind::BlobReference))?;
 
                 Some(ExternalEditor::new(&blob, &name, &self.editor))
             }
