@@ -27,8 +27,11 @@ mod tree_page;
 
 use crate::{
     app::{
-        blob_pager::BlobPager, external_editor::ExternalEditor, navigation::{ActionInfo, NavigationAction},
-        refs_page::RefsPage, tree_page::TreePage,
+        blob_pager::BlobPager,
+        external_editor::ExternalEditor,
+        navigation::{ActionInfo, NavigationAction},
+        refs_page::RefsPage,
+        tree_page::TreePage,
     },
     errors::{ErrorKind, GitBrowserError},
 };
@@ -168,9 +171,15 @@ impl<'repo> App<'repo> {
                 ]
             }
         };
-        let keys_hint = actions.iter().map(|a| ActionInfo::from(a).to_string()).collect::<Vec<String>>().join(" | ");
+        let keys_hint = actions
+            .iter()
+            .map(|a| ActionInfo::from(a).to_string())
+            .collect::<Vec<String>>()
+            .join(" | ");
         let content = Span::styled(keys_hint, Style::default().fg(Color::Red));
-        let block = Block::default().padding(Padding::horizontal(1)).borders(Borders::ALL);
+        let block = Block::default()
+            .padding(Padding::horizontal(1))
+            .borders(Borders::ALL);
         let hint = Paragraph::new(Line::from(content)).block(block);
         f.render_widget(hint, area);
     }
