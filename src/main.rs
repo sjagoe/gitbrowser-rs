@@ -72,9 +72,9 @@ fn main() -> Result<()> {
 }
 
 fn run_app<B: Backend>(terminal: &mut Terminal<B>, app: &mut App) -> Result<bool> {
-    let mut clear = false;
+    let mut redraw = false;
     loop {
-        if clear {
+        if redraw {
             terminal.clear()?;
         }
         terminal.draw(|f| ui(f, app))?;
@@ -90,8 +90,8 @@ fn run_app<B: Backend>(terminal: &mut Terminal<B>, app: &mut App) -> Result<bool
                 return Ok(true);
             }
             let navigation_action = NavigationAction::from(key);
-            clear = match app.navigate(&navigation_action) {
-                Ok(clear) => clear,
+            redraw = match app.navigate(&navigation_action) {
+                Ok(redraw) => redraw.0,
                 Err(error) => {
                     app.error(error);
                     true

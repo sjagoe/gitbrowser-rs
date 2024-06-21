@@ -56,6 +56,8 @@ pub struct App<'repo> {
     editor: String,
 }
 
+pub struct Redraw(pub bool);
+
 impl<'repo> App<'repo> {
     pub fn new(
         repo: &'repo Repository,
@@ -202,7 +204,7 @@ impl<'repo> App<'repo> {
         f.render_widget(content, area);
     }
 
-    pub fn navigate(&mut self, action: &NavigationAction) -> Result<bool, GitBrowserError> {
+    pub fn navigate(&mut self, action: &NavigationAction) -> Result<Redraw, GitBrowserError> {
         // Handle Select and Back on self and exit early
         match (action, self.mode()) {
             (NavigationAction::ExternalEditor, AppMode::BrowseTrees) => {
@@ -210,11 +212,11 @@ impl<'repo> App<'repo> {
             }
             (NavigationAction::Select, _) => {
                 self.select()?;
-                return Ok(false);
+                return Ok(Redraw(false));
             }
             (NavigationAction::Back, _) => {
                 self.back();
-                return Ok(false);
+                return Ok(Redraw(false));
             }
             _ => {}
         }
@@ -233,7 +235,7 @@ impl<'repo> App<'repo> {
                     .expect("No blob browser page in blob mode"),
             ),
             _ => {
-                return Ok(false);
+                return Ok(Redraw(false));
             }
         };
 
@@ -252,7 +254,7 @@ impl<'repo> App<'repo> {
             NavigationAction::Select => {}
             NavigationAction::Back => {}
         }
-        Ok(false)
+        Ok(Redraw(false))
     }
 
     pub fn select(&mut self) -> Result<(), GitBrowserError> {
@@ -336,28 +338,28 @@ impl<'repo> App<'repo> {
         self.mode_history.push(AppMode::Error);
     }
 
-    pub fn view_blob(&mut self) -> Result<bool, GitBrowserError> {
+    pub fn view_blob(&mut self) -> Result<Redraw, GitBrowserError> {
         self.external_editor = match self.mode() {
             AppMode::ViewBlob => {
                 if let Some(pager) = &self.blob_pager {
                     Some(ExternalEditor::new(&pager.blob, &pager.name, &self.editor))
                 } else {
-                    return Ok(false);
+                    return Ok(Redraw(false));
                 }
             }
             AppMode::BrowseTrees => {
                 let page = match self.tree_pages.last() {
                     Some(page) => page,
-                    None => return Ok(false),
+                    None => return Ok(Redraw(false)),
                 };
 
                 let (object, name) = match page.select() {
                     Some(selection) => selection,
-                    None => return Ok(false),
+                    None => return Ok(Redraw(false)),
                 };
 
                 if !matches!(object.kind(), Some(ObjectType::Blob)) {
-                    return Ok(false);
+                    return Ok(Redraw(false));
                 }
 
                 let blob = object
@@ -366,7 +368,7 @@ impl<'repo> App<'repo> {
 
                 Some(ExternalEditor::new(&blob, &name, &self.editor))
             }
-            _ => return Ok(false),
+            _ => return Ok(Redraw(false)),
         };
         self.mode_history.push(AppMode::ExternalEditor);
         if let Some(external_editor) = &mut self.external_editor {
@@ -377,7 +379,7 @@ impl<'repo> App<'repo> {
         }
         // We need to go back to the previous mode after the blocking editor display
         self.back();
-        Ok(true)
+        Ok(Redraw(true))
     }
 
     pub fn mode(&self) -> &AppMode {
