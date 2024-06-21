@@ -253,6 +253,8 @@ impl<'repo> App<'repo> {
             // Handled above
             NavigationAction::Select => {}
             NavigationAction::Back => {}
+            // Handled outside of app
+            NavigationAction::Exit => {}
         }
         Ok(Redraw(false))
     }

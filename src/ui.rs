@@ -6,7 +6,10 @@ use ratatui::{
     Frame,
 };
 
-use crate::app::App;
+use crate::app::{
+    navigation::{ActionInfo, NavigationAction},
+    App
+};
 
 pub fn ui(f: &mut Frame, app: &mut App) {
     // Create the layout sections.
@@ -17,7 +20,8 @@ pub fn ui(f: &mut Frame, app: &mut App) {
 
     app.draw(f, chunks[0]);
 
-    let current_keys_hint = Span::styled("(^x) exit | (^g) back", Style::default().fg(Color::Red));
+    let keys_hint = format!("{} | {}", ActionInfo::from(NavigationAction::Exit), ActionInfo::from(NavigationAction::Back));
+    let current_keys_hint = Span::styled(keys_hint, Style::default().fg(Color::Red));
 
     let key_notes_footer =
         Paragraph::new(Line::from(current_keys_hint)).block(Block::default().borders(Borders::ALL));
