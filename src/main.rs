@@ -74,14 +74,10 @@ fn run_app<B: Backend>(terminal: &mut Terminal<B>, app: &mut App) -> Result<bool
                 return Ok(true);
             }
             let navigation_action = NavigationAction::from(key);
-            match navigation_action {
-                NavigationAction::ExternalEditor => {
-                    clear = true;
-                }
-                _ => {
-                    clear = false;
-                }
-            }
+            clear = match navigation_action {
+                NavigationAction::ExternalEditor => true,
+                _ => false,
+            };
             if let Err(error) = app.navigate(navigation_action) {
                 app.error(error);
             }
