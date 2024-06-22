@@ -14,8 +14,8 @@ use ratatui::{
 
 use color_eyre::Result;
 
-use syntect::parsing::SyntaxSet;
 use syntect::highlighting;
+use syntect::parsing::SyntaxSet;
 
 use crate::{
     traits::{Drawable, Navigable},
@@ -336,8 +336,11 @@ impl<'repo, 'syntax> App<'repo, 'syntax> {
         match object.kind() {
             Some(ObjectType::Blob) => {
                 let pager = BlobPager::from_object(
-                    self.repo, object, page.selected_item(),
-                    &self.syntax_set, &self.theme,
+                    self.repo,
+                    object,
+                    page.selected_item(),
+                    &self.syntax_set,
+                    &self.theme,
                 )?;
                 self.blob_pager = Some(pager);
                 self.mode_history.push(AppMode::ViewBlob);

@@ -60,8 +60,13 @@ fn to_style(hstyle: &highlighting::Style) -> Style {
 }
 
 impl<'repo, 'syntax> BlobPager<'repo, 'syntax> {
-    pub fn new(_repo: &'repo Repository, blob: Blob<'repo>, name: String,
-               syntax_set: &'syntax SyntaxSet, theme: &'syntax highlighting::Theme) -> BlobPager<'repo, 'syntax> {
+    pub fn new(
+        _repo: &'repo Repository,
+        blob: Blob<'repo>,
+        name: String,
+        syntax_set: &'syntax SyntaxSet,
+        theme: &'syntax highlighting::Theme,
+    ) -> BlobPager<'repo, 'syntax> {
         let content = match std::str::from_utf8(blob.content()) {
             Ok(v) => v,
             Err(e) => panic!("unable to decode utf8 {}", e),
