@@ -84,7 +84,7 @@ impl<'repo> Drawable<'repo> for BlobPager<'repo> {
         let syntax = match Path::new(&self.name).extension().and_then(OsStr::to_str) {
             Some(ext) => self.syntax_set.find_syntax_by_extension(ext),
             _ => match self.lines.first() {
-                Some(line) => self.syntax_set.find_syntax_by_first_line(&line),
+                Some(line) => self.syntax_set.find_syntax_by_first_line(line),
                 _ => None,
             },
         };
