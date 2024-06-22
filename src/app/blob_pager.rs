@@ -68,12 +68,15 @@ impl<'repo, 'syntax> BlobPager<'repo, 'syntax> {
         };
         let raw_lines: Vec<String> = content.lines().map(|line| line.to_string()).collect();
 
-        let syntax = match Path::new(&name).extension().and_then(OsStr::to_str) {
-            Some(ext) => syntax_set.find_syntax_by_extension(ext).cloned(),
-            _ => match raw_lines.first() {
-                Some(line) => syntax_set.find_syntax_by_first_line(line).cloned(),
-                _ => None,
-            },
+        let syntax = {
+            let extension = Path::new(&name).extension().and_then(OsStr::to_str);
+            if let Some(ext) = extension {
+                syntax_set.find_syntax_by_extension(ext).cloned()
+            } else if let Some(line) = raw_lines.first() {
+                syntax_set.find_syntax_by_first_line(line).cloned()
+            } else {
+                None
+            }
         };
         let background_style = match syntax {
             Some(_) => {
