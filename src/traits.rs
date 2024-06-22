@@ -23,6 +23,7 @@ pub trait Navigable<'repo> {
     fn previous_selection(&mut self);
     fn select(&self) -> Option<(Object<'repo>, String)>;
     fn selected_item(&self) -> String;
+    fn next_tick(&mut self);
 }
 
 pub trait Drawable<'repo> {

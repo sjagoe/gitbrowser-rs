@@ -167,4 +167,6 @@ impl<'repo> Navigable<'repo> for TreePage<'repo> {
             }
         }
     }
+
+    fn next_tick(&mut self) {}
 }

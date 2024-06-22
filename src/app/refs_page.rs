@@ -144,4 +144,6 @@ impl<'repo> Navigable<'repo> for RefsPage<'repo> {
             items[self.selected_index].to_string()
         }
     }
+
+    fn next_tick(&mut self) {}
 }

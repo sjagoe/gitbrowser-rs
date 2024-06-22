@@ -291,6 +291,7 @@ impl<'repo, 'syntax> App<'repo, 'syntax> {
         };
 
         match action {
+            NavigationAction::Tick => page.next_tick(),
             NavigationAction::Home => page.home(self.height),
             NavigationAction::End => page.end(self.height),
             NavigationAction::PageUp => page.pageup(self.height),

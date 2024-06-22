@@ -1,4 +1,5 @@
 use std::env;
+use std::time::Duration;
 
 use crossterm::event::{self, Event, KeyCode, KeyEventKind, KeyModifiers};
 use ratatui::{backend::Backend, Terminal};
@@ -84,6 +85,17 @@ fn run_app<B: Backend>(terminal: &mut Terminal<B>, app: &mut App) -> Result<bool
             terminal.clear()?;
         }
         terminal.draw(|f| ui(f, app))?;
+
+        if !event::poll(Duration::from_millis(50))? {
+            redraw = match app.navigate(&NavigationAction::Tick) {
+                Ok(redraw) => redraw.0,
+                Err(error) => {
+                    app.error(error);
+                    true
+                }
+            };
+            continue;
+        }
 
         let read_event = event::read()?;
 

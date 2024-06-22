@@ -252,4 +252,7 @@ impl<'repo> Navigable<'repo> for BlobPager<'repo> {
     fn selected_item(&self) -> String {
         "".to_string()
     }
+
+    fn next_tick(&mut self) {
+    }
 }
