@@ -16,8 +16,6 @@ use crate::{
 
 use color_eyre::Result;
 
-use two_face::re_exports::syntect;
-
 use clap::Parser;
 use git2::{Object, Repository};
 
