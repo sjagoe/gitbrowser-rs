@@ -29,22 +29,37 @@ jobs:
       - name: Build
         run: nix build
 
-  cargo-build:
+  build:
     name: Build with cargo
-    runs-on: ubuntu-latest
+    runs-on: ${{ matrix.os }}
     strategy:
+      fail-fast: false
       matrix:
         toolchain:
           - stable
-          - beta
-          - nightly
+        os:
+          - ubuntu-latest
+          - windows-latest
+          - macos-latest
+        include:
+          - toolchain: beta
+            os: ubuntu-latest
+          - toolchain: nightly
+            os: ubuntu-latest
     steps:
       - name: Checkout
         uses: actions/checkout@v4
       - run: rustup update "$TOOLCHAIN" && rustup default "$TOOLCHAIN"
         env:
           TOOLCHAIN: ${{ matrix.toolchain }}
-      - run: cargo build --verbose
+      - run: cargo build --locked --verbose
+
+  build-success:
+    name: Build success
+    needs: [build]
+    runs-on: ubuntu-latest
+    steps:
+      - run: 'true'
 
   cargo-fmt:
     name: Cargo format check
