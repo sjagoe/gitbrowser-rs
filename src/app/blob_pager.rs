@@ -14,7 +14,6 @@ use color_eyre::Result;
 
 use syntect::easy::HighlightLines;
 use syntect::highlighting;
-use syntect::parsing::{SyntaxReference, SyntaxSet};
 use two_face::re_exports::syntect;
 
 use crate::errors::{ErrorKind, GitBrowserError};
@@ -25,11 +24,64 @@ pub struct BlobPager<'repo> {
     // repo: &'repo Repository,
     pub blob: Blob<'repo>,
     pub name: String,
-    lines: Vec<String>,
-    syntax_set: SyntaxSet,
-    syntax: Option<SyntaxReference>,
-    theme: highlighting::Theme,
     background_style: Style,
+    lines: Vec<HighlightedLine>,
+}
+
+struct HighlightedLine {
+    pub components: Vec<(Style, String)>,
+}
+
+impl<'a> From<Vec<(highlighting::Style, &'a str)>> for HighlightedLine {
+    fn from(value: Vec<(highlighting::Style, &'a str)>) -> HighlightedLine {
+        HighlightedLine {
+            components: value
+                .iter()
+                .map(|(style, text)| (to_style(style), text.to_string()))
+                .collect(),
+        }
+    }
+}
+
+fn highlight_text(name: &str, lines: &[String]) -> (Style, Vec<HighlightedLine>) {
+    // Load these once at the start of your program
+    let syntax_set = two_face::syntax::extra_newlines();
+    let theme_set = two_face::theme::extra();
+
+    let syntax = match Path::new(name).extension().and_then(OsStr::to_str) {
+        Some(ext) => syntax_set.find_syntax_by_extension(ext).cloned(),
+        _ => match lines.first() {
+            Some(line) => syntax_set.find_syntax_by_first_line(line).cloned(),
+            _ => None,
+        },
+    };
+    let theme = theme_set
+        .get(two_face::theme::EmbeddedThemeName::Nord)
+        .clone();
+    let background_style = match syntax {
+        Some(_) => {
+            if let Some(color) = theme.settings.background {
+                Style::default().bg(to_color(&color))
+            } else {
+                Style::default()
+            }
+        }
+        _ => Style::default(),
+    };
+
+    let mut highlighter = syntax.as_ref().map(|s| HighlightLines::new(s, &theme));
+
+    let highlighted_lines: Vec<HighlightedLine> = lines
+        .iter()
+        .map(|text| match &mut highlighter {
+            Some(h) => HighlightedLine::from(h.highlight_line(text, &syntax_set).unwrap()),
+            _ => HighlightedLine {
+                components: vec![(Style::default(), text.to_string())],
+            },
+        })
+        .collect();
+
+    (background_style, highlighted_lines)
 }
 
 fn to_color(hcolor: &highlighting::Color) -> Color {
@@ -49,41 +101,16 @@ impl<'repo> BlobPager<'repo> {
             Err(e) => panic!("unable to decode utf8 {}", e),
         };
         let lines: Vec<String> = content.lines().map(|line| line.to_string()).collect();
-        // Load these once at the start of your program
-        let syntax_set = two_face::syntax::extra_newlines();
-        let theme_set = two_face::theme::extra();
 
-        let syntax = match Path::new(&name).extension().and_then(OsStr::to_str) {
-            Some(ext) => syntax_set.find_syntax_by_extension(ext).cloned(),
-            _ => match lines.first() {
-                Some(line) => syntax_set.find_syntax_by_first_line(line).cloned(),
-                _ => None,
-            },
-        };
-        let theme = theme_set
-            .get(two_face::theme::EmbeddedThemeName::Nord)
-            .clone();
-        let background_style = match syntax {
-            Some(_) => {
-                if let Some(color) = theme.settings.background {
-                    Style::default().bg(to_color(&color))
-                } else {
-                    Style::default()
-                }
-            }
-            _ => Style::default(),
-        };
+        let (background_style, highlighted_lines) = highlight_text(&name, &lines);
 
         BlobPager {
             top: 0,
             // repo: repo,
             blob: blob.clone(),
             name,
-            lines,
-            syntax_set,
             background_style,
-            theme: theme.clone(),
-            syntax,
+            lines: highlighted_lines,
         }
     }
 
@@ -127,34 +154,22 @@ impl<'repo> Drawable<'repo> for BlobPager<'repo> {
             vec![]
         };
 
-        let mut highlighter = self
-            .syntax
-            .as_ref()
-            .map(|s| HighlightLines::new(s, &self.theme));
-
         let lines: Vec<Line> = self.lines[self.top..bottom]
             .iter()
             .enumerate()
-            .map(|(index, text)| {
+            .map(|(index, highlighted_line)| {
                 let tmp = format!("{}", bottom);
                 let width = tmp.len();
                 let formatted = format!("{:width$} | ", index + self.top);
                 let lineno = Span::styled(formatted, Style::default().add_modifier(Modifier::DIM));
 
-                let mut parts = match &mut highlighter {
-                    Some(h) => {
-                        let mut parts = Vec::<Span>::new();
-                        let ranges: Vec<(highlighting::Style, &str)> =
-                            h.highlight_line(text, &self.syntax_set).unwrap();
-                        for (style, part) in ranges.iter() {
-                            parts.push(Span::styled(*part, to_style(style)));
-                        }
-                        parts
-                    }
-                    _ => vec![Span::from(text)],
-                };
+                let mut spans = highlighted_line
+                    .components
+                    .iter()
+                    .map(|(style, text)| Span::styled(text, *style))
+                    .collect();
                 let mut line = vec![lineno];
-                line.append(&mut parts);
+                line.append(&mut spans);
 
                 Line::from(line)
             })
