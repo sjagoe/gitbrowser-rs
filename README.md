@@ -2,6 +2,6 @@
 
 My first rust project.
 
-A hot mess.
-
-An TUI app to browse git repositories at arbitraty revisions.
+A simple TUI app to browse git repositories at arbitraty revisions,
+because I didn't feel like checking out the revision of a large
+repository.
