@@ -43,20 +43,29 @@ impl<'a> From<Vec<(highlighting::Style, &'a str)>> for HighlightedLine {
         HighlightedLine {
             components: value
                 .iter()
-                .map(|(style, text)| (to_style(style), text.to_string()))
+                .map(|(style, text)| (TuiStyle::from(style).0, text.to_string()))
                 .collect(),
         }
     }
 }
 
-fn to_color(hcolor: &highlighting::Color) -> Color {
-    Color::Rgb(hcolor.r, hcolor.g, hcolor.b)
+struct TuiColor(Color);
+struct TuiStyle(Style);
+
+impl From<&highlighting::Color> for TuiColor {
+    fn from(color: &highlighting::Color) -> TuiColor {
+        TuiColor(Color::Rgb(color.r, color.g, color.b))
+    }
 }
 
-fn to_style(hstyle: &highlighting::Style) -> Style {
-    Style::default()
-        .fg(to_color(&hstyle.foreground))
-        .bg(to_color(&hstyle.background))
+impl From<&highlighting::Style> for TuiStyle {
+    fn from(style: &highlighting::Style) -> TuiStyle {
+        TuiStyle(
+            Style::default()
+                .fg(TuiColor::from(&style.foreground).0)
+                .bg(TuiColor::from(&style.background).0),
+        )
+    }
 }
 
 impl<'repo, 'syntax> BlobPager<'repo, 'syntax> {
@@ -86,7 +95,7 @@ impl<'repo, 'syntax> BlobPager<'repo, 'syntax> {
         let background_style = match syntax {
             Some(_) => {
                 if let Some(color) = theme.settings.background {
-                    Style::default().bg(to_color(&color))
+                    Style::default().bg(TuiColor::from(&color).0)
                 } else {
                     Style::default()
                 }
