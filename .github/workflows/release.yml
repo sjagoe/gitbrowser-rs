@@ -1,0 +1,62 @@
+name: Test and release
+
+on:
+  push:
+    branches: [main]
+
+jobs:
+  build:
+    if: github.actor != 'package-release[bot]'
+    uses: ./.github/workflows/test.yml
+    secrets: inherit
+
+  prepare-release:
+    runs-on: ubuntu-latest
+    needs: [build]
+    outputs:
+      release: ${{ steps.release.outputs.release }}
+      release-kind: ${{ steps.release.outputs.release-kind }}
+    steps:
+      - uses: actions/checkout@v4
+      - name: Get pull release information
+        id: release
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const script = require('./.github/actions/pull-request.js');
+            await script({github, context, core});
+
+  release:
+    runs-on: ubuntu-latest
+    if: needs.prepare-release.outputs.release == 'true'
+    needs: [prepare-release]
+    steps:
+      - name: Create release app token
+        id: generate-token
+        uses: actions/create-github-app-token@v1
+        with:
+          app-id: ${{ vars.RELEASE_APP_ID }}
+          private-key: ${{ secrets.RELEASE_APP_PRIVATE_KEY }}
+      - uses: actions/checkout@v4
+        with:
+          token: ${{ steps.generate-token.outputs.token }}
+      - name: Bump Cargo.toml version
+        env:
+          RELEASE_KIND: ${{ needs.prepare-release.outputs.release-kind }}
+        run: |
+          rustup update stable
+          rustup default stable
+          cargo install cargo-bump
+          cargo bump "$RELEASE_KIND"
+          cargo update --workspace
+
+          NEW_VERSION="$(cargo read-manifest | jq -r .version)"
+
+          # https://github.com/actions/checkout?tab=readme-ov-file#push-a-commit-using-the-built-in-token
+          # The number in the email is the bot user ID
+          git config user.name "package-release[bot]"
+          git config user.email "173561466+package-release[bot]@users.noreply.github.com"
+          git add -u -- Cargo.toml Cargo.lock
+          git commit -m "Release automation: Create release for v$NEW_VERSION"
+          git tag "v${NEW_VERSION}"
+          git push --tags origin main

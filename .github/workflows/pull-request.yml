@@ -1,0 +1,10 @@
+name: Pull request
+
+on:
+  pull_request:
+
+jobs:
+  build:
+    if: github.actor != 'package-release[bot]'
+    uses: ./.github/workflows/test.yml
+    secrets: inherit
