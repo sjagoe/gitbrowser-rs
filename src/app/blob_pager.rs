@@ -119,10 +119,7 @@ impl<'repo> Drawable<'repo> for BlobPager<'repo> {
             vec![]
         };
 
-        let mut highlighter = match syntax {
-            Some(syntax) => Some(HighlightLines::new(syntax, theme)),
-            _ => None,
-        };
+        let mut highlighter = syntax.map(|s| HighlightLines::new(s, theme));
 
         let lines: Vec<Line> = self.lines[self.top..bottom]
             .iter()
