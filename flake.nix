@@ -14,12 +14,21 @@
     (utils.lib.eachDefaultSystem (system:
       let
         pkgs = nixpkgs.legacyPackages.${system};
+        inherit (pkgs) pkgsStatic;
       in
         {
           packages =
             {
               gitbrowser-rs =
                 pkgs.rustPlatform.buildRustPackage {
+                  pname = "gitbrowser-rs";
+                  version = "0.1.0";
+                  src = ./.;
+
+                  cargoLock.lockFile = ./Cargo.lock;
+                };
+              gitbrowser-rs-static =
+                pkgsStatic.rustPlatform.buildRustPackage {
                   pname = "gitbrowser-rs";
                   version = "0.1.0";
                   src = ./.;
