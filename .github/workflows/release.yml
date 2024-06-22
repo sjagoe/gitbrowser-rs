@@ -59,4 +59,6 @@ jobs:
           git add -u -- Cargo.toml Cargo.lock
           git commit -m "Release automation: Create release for v$NEW_VERSION"
           git tag "v${NEW_VERSION}"
-          git push --tags origin main
+          git push origin main
+          # Only push tags if we succeed in updating main
+          git push --tags

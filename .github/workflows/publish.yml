@@ -103,4 +103,4 @@ jobs:
         env:
           CARGO_TOKEN: ${{ secrets.CRATES_IO_API_KEY }}
         run: |
-          cargo publish --token "$CARGO_TOKEN" --dry-run
+          cargo publish --token "$CARGO_TOKEN"
