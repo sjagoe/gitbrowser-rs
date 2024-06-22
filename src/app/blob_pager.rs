@@ -30,14 +30,14 @@ pub struct BlobPager<'repo> {
     theme_set: two_face::theme::EmbeddedLazyThemeSet,
 }
 
-fn to_color(hcolor: highlighting::Color) -> Color {
+fn to_color(hcolor: &highlighting::Color) -> Color {
     Color::Rgb(hcolor.r, hcolor.g, hcolor.b)
 }
 
-fn to_style(hstyle: highlighting::Style) -> Style {
+fn to_style(hstyle: &highlighting::Style) -> Style {
     Style::default()
-        .fg(to_color(hstyle.foreground))
-        .bg(to_color(hstyle.background))
+        .fg(to_color(&hstyle.foreground))
+        .bg(to_color(&hstyle.background))
 }
 
 impl<'repo> BlobPager<'repo> {
@@ -92,7 +92,7 @@ impl<'repo> Drawable<'repo> for BlobPager<'repo> {
         let style = match syntax {
             Some(_) => {
                 if let Some(color) = theme.settings.background {
-                    Style::default().bg(to_color(color))
+                    Style::default().bg(to_color(&color))
                 } else {
                     Style::default()
                 }
@@ -139,7 +139,7 @@ impl<'repo> Drawable<'repo> for BlobPager<'repo> {
                         let ranges: Vec<(highlighting::Style, &str)> =
                             h.highlight_line(text, &self.syntax_set).unwrap();
                         for (style, part) in ranges.iter() {
-                            parts.push(Span::styled(*part, to_style(style.clone())));
+                            parts.push(Span::styled(*part, to_style(style)));
                         }
                         parts
                     }
