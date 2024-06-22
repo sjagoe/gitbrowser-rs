@@ -14,7 +14,7 @@ use color_eyre::Result;
 
 use syntect::easy::HighlightLines;
 use syntect::highlighting;
-use syntect::parsing::SyntaxSet;
+use syntect::parsing::{SyntaxReference, SyntaxSet};
 use two_face::re_exports::syntect;
 
 use crate::errors::{ErrorKind, GitBrowserError};
@@ -27,7 +27,9 @@ pub struct BlobPager<'repo> {
     pub name: String,
     lines: Vec<String>,
     syntax_set: SyntaxSet,
-    theme_set: two_face::theme::EmbeddedLazyThemeSet,
+    syntax: Option<SyntaxReference>,
+    theme: highlighting::Theme,
+    background_style: Style,
 }
 
 fn to_color(hcolor: &highlighting::Color) -> Color {
@@ -46,10 +48,32 @@ impl<'repo> BlobPager<'repo> {
             Ok(v) => v,
             Err(e) => panic!("unable to decode utf8 {}", e),
         };
-        let lines = content.lines().map(|line| line.to_string()).collect();
+        let lines: Vec<String> = content.lines().map(|line| line.to_string()).collect();
         // Load these once at the start of your program
         let syntax_set = two_face::syntax::extra_newlines();
         let theme_set = two_face::theme::extra();
+
+        let syntax = match Path::new(&name).extension().and_then(OsStr::to_str) {
+            Some(ext) => syntax_set.find_syntax_by_extension(ext).cloned(),
+            _ => match lines.first() {
+                Some(line) => syntax_set.find_syntax_by_first_line(line).cloned(),
+                _ => None,
+            },
+        };
+        let theme = theme_set
+            .get(two_face::theme::EmbeddedThemeName::Nord)
+            .clone();
+        let background_style = match syntax {
+            Some(_) => {
+                if let Some(color) = theme.settings.background {
+                    Style::default().bg(to_color(&color))
+                } else {
+                    Style::default()
+                }
+            }
+            _ => Style::default(),
+        };
+
         BlobPager {
             top: 0,
             // repo: repo,
@@ -57,7 +81,9 @@ impl<'repo> BlobPager<'repo> {
             name,
             lines,
             syntax_set,
-            theme_set,
+            background_style,
+            theme: theme.clone(),
+            syntax,
         }
     }
 
@@ -81,25 +107,7 @@ impl<'repo> BlobPager<'repo> {
 
 impl<'repo> Drawable<'repo> for BlobPager<'repo> {
     fn draw(&self, f: &mut Frame, area: Rect, content_block_ext: Block) -> Rect {
-        let syntax = match Path::new(&self.name).extension().and_then(OsStr::to_str) {
-            Some(ext) => self.syntax_set.find_syntax_by_extension(ext),
-            _ => match self.lines.first() {
-                Some(line) => self.syntax_set.find_syntax_by_first_line(line),
-                _ => None,
-            },
-        };
-        let theme = &self.theme_set.get(two_face::theme::EmbeddedThemeName::Nord);
-        let style = match syntax {
-            Some(_) => {
-                if let Some(color) = theme.settings.background {
-                    Style::default().bg(to_color(&color))
-                } else {
-                    Style::default()
-                }
-            }
-            _ => Style::default(),
-        };
-        let content_block = content_block_ext.style(style);
+        let content_block = content_block_ext.style(self.background_style);
 
         let viewport = content_block.inner(area);
         let height: usize = viewport.height.into();
@@ -119,7 +127,10 @@ impl<'repo> Drawable<'repo> for BlobPager<'repo> {
             vec![]
         };
 
-        let mut highlighter = syntax.map(|s| HighlightLines::new(s, theme));
+        let mut highlighter = self
+            .syntax
+            .as_ref()
+            .map(|s| HighlightLines::new(s, &self.theme));
 
         let lines: Vec<Line> = self.lines[self.top..bottom]
             .iter()
