@@ -1,5 +1,6 @@
 [package]
 name = "gitbrowser-rs"
+description = "A basic TUI git repository browser without needing to check out the revision being browsed."
 version = "0.1.0"
 edition = "2021"
 license = "MIT"
