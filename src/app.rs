@@ -339,8 +339,8 @@ impl<'repo, 'syntax> App<'repo, 'syntax> {
                     self.repo,
                     object,
                     page.selected_item(),
-                    &self.syntax_set,
-                    &self.theme,
+                    self.syntax_set,
+                    self.theme,
                 )?;
                 self.blob_pager = Some(pager);
                 self.mode_history.push(AppMode::ViewBlob);

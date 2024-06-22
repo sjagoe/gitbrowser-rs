@@ -94,12 +94,12 @@ impl<'repo, 'syntax> BlobPager<'repo, 'syntax> {
             _ => Style::default(),
         };
 
-        let mut highlighter = syntax.as_ref().map(|s| HighlightLines::new(s, &theme));
+        let mut highlighter = syntax.as_ref().map(|s| HighlightLines::new(s, theme));
 
         let lines: Vec<HighlightedLine> = raw_lines
             .iter()
             .map(|text| match &mut highlighter {
-                Some(h) => HighlightedLine::from(h.highlight_line(text, &syntax_set).unwrap()),
+                Some(h) => HighlightedLine::from(h.highlight_line(text, syntax_set).unwrap()),
                 _ => HighlightedLine {
                     components: vec![(Style::default(), text.to_string())],
                 },
