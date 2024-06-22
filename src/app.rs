@@ -55,7 +55,7 @@ pub struct App<'repo, 'syntax> {
     commit: Option<Commit<'repo>>,
     refs_page: RefsPage<'repo>,
     tree_pages: Vec<TreePage<'repo>>,
-    blob_pager: Option<BlobPager<'repo, 'syntax>>,
+    blob_pager: Option<BlobPager<'repo>>,
     external_editor: Option<ExternalEditor>,
     mode_history: Vec<AppMode>,
     height: u16,

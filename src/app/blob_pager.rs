@@ -14,23 +14,23 @@ use color_eyre::Result;
 
 use syntect::easy::HighlightLines;
 use syntect::highlighting;
-use syntect::parsing::{SyntaxReference, SyntaxSet};
+use syntect::parsing::SyntaxSet;
 use two_face::re_exports::syntect;
 
 use crate::errors::{ErrorKind, GitBrowserError};
 use crate::traits::{Drawable, Navigable};
 
-pub struct BlobPager<'repo, 'syntax> {
+pub struct BlobPager<'repo> {
     top: usize,
     // repo: &'repo Repository,
     pub blob: Blob<'repo>,
     pub name: String,
     background_style: Style,
-    syntax_set: &'syntax SyntaxSet,
-    syntax: Option<SyntaxReference>,
-    theme: &'syntax highlighting::Theme,
-    highlighter: Option<HighlightLines<'syntax>>,
-    raw_lines: Vec<String>,
+    // syntax_set: &'syntax SyntaxSet,
+    // syntax: Option<SyntaxReference>,
+    // theme: &'syntax highlighting::Theme,
+    // highlighter: Option<HighlightLines<'syntax>>,
+    // raw_lines: Vec<String>,
     lines: Vec<HighlightedLine>,
 }
 
@@ -59,14 +59,14 @@ fn to_style(hstyle: &highlighting::Style) -> Style {
         .bg(to_color(&hstyle.background))
 }
 
-impl<'repo, 'syntax> BlobPager<'repo, 'syntax> {
+impl<'repo> BlobPager<'repo> {
     pub fn new(
         _repo: &'repo Repository,
         blob: Blob<'repo>,
         name: String,
-        syntax_set: &'syntax SyntaxSet,
-        theme: &'syntax highlighting::Theme,
-    ) -> BlobPager<'repo, 'syntax> {
+        syntax_set: &SyntaxSet,
+        theme: &highlighting::Theme,
+    ) -> BlobPager<'repo> {
         let content = match std::str::from_utf8(blob.content()) {
             Ok(v) => v,
             Err(e) => panic!("unable to decode utf8 {}", e),
@@ -112,11 +112,11 @@ impl<'repo, 'syntax> BlobPager<'repo, 'syntax> {
             blob: blob.clone(),
             name,
             background_style,
-            syntax_set,
-            syntax,
-            theme,
-            highlighter,
-            raw_lines,
+            // syntax_set,
+            // syntax,
+            // theme,
+            // highlighter,
+            // raw_lines,
             lines,
         }
     }
@@ -125,8 +125,8 @@ impl<'repo, 'syntax> BlobPager<'repo, 'syntax> {
         repo: &'repo Repository,
         object: Object<'repo>,
         name: String,
-        syntax_set: &'syntax SyntaxSet,
-        theme: &'syntax highlighting::Theme,
+        syntax_set: &SyntaxSet,
+        theme: &highlighting::Theme,
     ) -> Result<Self, GitBrowserError> {
         match object.into_blob() {
             Ok(blob) => {
@@ -141,7 +141,7 @@ impl<'repo, 'syntax> BlobPager<'repo, 'syntax> {
     }
 }
 
-impl<'repo, 'syntax> Drawable<'repo> for BlobPager<'repo, 'syntax> {
+impl<'repo> Drawable<'repo> for BlobPager<'repo> {
     fn draw(&self, f: &mut Frame, area: Rect, content_block_ext: Block) -> Rect {
         let content_block = content_block_ext.style(self.background_style);
 
@@ -199,7 +199,7 @@ impl<'repo, 'syntax> Drawable<'repo> for BlobPager<'repo, 'syntax> {
     }
 }
 
-impl<'repo, 'syntax> Navigable<'repo> for BlobPager<'repo, 'syntax> {
+impl<'repo> Navigable<'repo> for BlobPager<'repo> {
     fn home(&mut self, _page_size: u16) {
         self.top = 0;
     }
