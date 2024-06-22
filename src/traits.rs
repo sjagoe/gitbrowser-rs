@@ -1,3 +1,5 @@
+use color_eyre::Result;
+
 use git2::{Object, ObjectType, Repository, TreeEntry};
 
 use ratatui::{
@@ -7,6 +9,8 @@ use ratatui::{
     widgets::Block,
     Frame,
 };
+
+use crate::errors::GitBrowserError;
 
 pub trait Display {
     fn display_kind(&self, repo: &Repository) -> Option<(String, Style)>;
@@ -23,7 +27,7 @@ pub trait Navigable<'repo> {
     fn previous_selection(&mut self);
     fn select(&self) -> Option<(Object<'repo>, String)>;
     fn selected_item(&self) -> String;
-    fn next_tick(&mut self);
+    fn next_tick(&mut self, block: bool) -> Result<(), GitBrowserError>;
 }
 
 pub trait Drawable<'repo> {

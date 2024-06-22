@@ -15,7 +15,7 @@ use color_eyre::Result;
 
 use syntect::easy::HighlightLines;
 use syntect::highlighting;
-use syntect::parsing::{SyntaxSet};
+use syntect::parsing::SyntaxSet;
 
 use crate::errors::{ErrorKind, GitBrowserError};
 use crate::traits::{Drawable, Navigable};
@@ -243,13 +243,14 @@ impl<'repo, 'syntax> Navigable<'repo> for BlobPager<'repo, 'syntax> {
         "".to_string()
     }
 
-    fn next_tick(&mut self) {
+    fn next_tick(&mut self, block: bool) -> Result<(), GitBrowserError> {
         if self.raw_lines.is_empty() {
-            return;
+            return Ok(());
         }
 
         let mut count = 0;
-        while count < 100 && !self.raw_lines.is_empty() {
+        let max_items = if block { self.raw_lines.len() } else { 100 };
+        while count < max_items && !self.raw_lines.is_empty() {
             count += 1;
             let text = self.raw_lines.pop_front().unwrap();
             let line = match &mut self.highlighter {
@@ -261,5 +262,7 @@ impl<'repo, 'syntax> Navigable<'repo> for BlobPager<'repo, 'syntax> {
 
             self.lines.push(line);
         }
+
+        Ok(())
     }
 }

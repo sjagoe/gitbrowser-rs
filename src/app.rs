@@ -291,9 +291,14 @@ impl<'repo, 'syntax> App<'repo, 'syntax> {
         };
 
         match action {
-            NavigationAction::Tick => page.next_tick(),
+            NavigationAction::Tick => {
+                page.next_tick(false)?;
+            }
             NavigationAction::Home => page.home(self.height),
-            NavigationAction::End => page.end(self.height),
+            NavigationAction::End => {
+                page.next_tick(true)?;
+                page.end(self.height);
+            }
             NavigationAction::PageUp => page.pageup(self.height),
             NavigationAction::PageDown => page.pagedown(self.height),
             NavigationAction::NextSelection => page.next_selection(),

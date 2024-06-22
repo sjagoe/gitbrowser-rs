@@ -9,6 +9,7 @@ use ratatui::{
 };
 
 use crate::app::pagination::pagination;
+use crate::errors::GitBrowserError;
 use crate::traits::{Drawable, Navigable};
 
 pub struct RefsPage<'repo> {
@@ -145,5 +146,7 @@ impl<'repo> Navigable<'repo> for RefsPage<'repo> {
         }
     }
 
-    fn next_tick(&mut self) {}
+    fn next_tick(&mut self, _block: bool) -> Result<(), GitBrowserError> {
+        Ok(())
+    }
 }
