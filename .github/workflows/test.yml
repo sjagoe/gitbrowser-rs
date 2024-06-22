@@ -36,28 +36,31 @@ jobs:
       fail-fast: false
       matrix:
         include:
+          # Linux
           - toolchain: stable
             os: ubuntu-latest
             target: x86_64-unknown-linux-musl
-
           - toolchain: stable
             os: ubuntu-latest
             target: x86_64-unknown-linux-gnu
 
+          # Windows
+          - toolchain: stable
+            os: windows-latest
+            target: x86_64-pc-windows-msvc
+
+          # MacOS
+          - toolchain: stable
+            os: macos-latest
+            target: aarch64-apple-darwin
+
+          # non-stable toolchains
           - toolchain: beta
             os: ubuntu-latest
             target: x86_64-unknown-linux-gnu
           - toolchain: nightly
             os: ubuntu-latest
             target: x86_64-unknown-linux-gnu
-
-          - toolchain: stable
-            os: windows-latest
-            target: x86_64-pc-windows-msvc
-
-          - toolchain: stable
-            os: macos-latest
-            target: aarch64-apple-darwin
     steps:
       - name: Checkout
         uses: actions/checkout@v4
