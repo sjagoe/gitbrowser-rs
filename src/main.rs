@@ -15,6 +15,8 @@ use crate::{
 
 use color_eyre::Result;
 
+use two_face::re_exports::syntect;
+
 use clap::Parser;
 use git2::{Object, Repository};
 
@@ -64,8 +66,14 @@ fn main() -> Result<()> {
         }
     };
 
+    let syntax_set = two_face::syntax::extra_newlines();
+    let theme_set = two_face::theme::extra();
+    let theme = theme_set
+        .get(two_face::theme::EmbeddedThemeName::Nord)
+        .clone();
+
     let mut terminal = tui::init()?;
-    let mut app = App::new(&repo, commit, pager);
+    let mut app = App::new(&repo, commit, pager, &syntax_set, &theme);
     run_app(&mut terminal, &mut app)?;
     tui::restore()?;
     Ok(())

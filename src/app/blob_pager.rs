@@ -14,17 +14,23 @@ use color_eyre::Result;
 
 use syntect::easy::HighlightLines;
 use syntect::highlighting;
+use syntect::parsing::{SyntaxReference, SyntaxSet};
 use two_face::re_exports::syntect;
 
 use crate::errors::{ErrorKind, GitBrowserError};
 use crate::traits::{Drawable, Navigable};
 
-pub struct BlobPager<'repo> {
+pub struct BlobPager<'repo, 'syntax> {
     top: usize,
     // repo: &'repo Repository,
     pub blob: Blob<'repo>,
     pub name: String,
     background_style: Style,
+    syntax_set: &'syntax SyntaxSet,
+    syntax: Option<SyntaxReference>,
+    theme: &'syntax highlighting::Theme,
+    highlighter: Option<HighlightLines<'syntax>>,
+    raw_lines: Vec<String>,
     lines: Vec<HighlightedLine>,
 }
 
@@ -43,47 +49,6 @@ impl<'a> From<Vec<(highlighting::Style, &'a str)>> for HighlightedLine {
     }
 }
 
-fn highlight_text(name: &str, lines: &[String]) -> (Style, Vec<HighlightedLine>) {
-    // Load these once at the start of your program
-    let syntax_set = two_face::syntax::extra_newlines();
-    let theme_set = two_face::theme::extra();
-
-    let syntax = match Path::new(name).extension().and_then(OsStr::to_str) {
-        Some(ext) => syntax_set.find_syntax_by_extension(ext).cloned(),
-        _ => match lines.first() {
-            Some(line) => syntax_set.find_syntax_by_first_line(line).cloned(),
-            _ => None,
-        },
-    };
-    let theme = theme_set
-        .get(two_face::theme::EmbeddedThemeName::Nord)
-        .clone();
-    let background_style = match syntax {
-        Some(_) => {
-            if let Some(color) = theme.settings.background {
-                Style::default().bg(to_color(&color))
-            } else {
-                Style::default()
-            }
-        }
-        _ => Style::default(),
-    };
-
-    let mut highlighter = syntax.as_ref().map(|s| HighlightLines::new(s, &theme));
-
-    let highlighted_lines: Vec<HighlightedLine> = lines
-        .iter()
-        .map(|text| match &mut highlighter {
-            Some(h) => HighlightedLine::from(h.highlight_line(text, &syntax_set).unwrap()),
-            _ => HighlightedLine {
-                components: vec![(Style::default(), text.to_string())],
-            },
-        })
-        .collect();
-
-    (background_style, highlighted_lines)
-}
-
 fn to_color(hcolor: &highlighting::Color) -> Color {
     Color::Rgb(hcolor.r, hcolor.g, hcolor.b)
 }
@@ -94,15 +59,44 @@ fn to_style(hstyle: &highlighting::Style) -> Style {
         .bg(to_color(&hstyle.background))
 }
 
-impl<'repo> BlobPager<'repo> {
-    pub fn new(_repo: &'repo Repository, blob: Blob<'repo>, name: String) -> BlobPager<'repo> {
+impl<'repo, 'syntax> BlobPager<'repo, 'syntax> {
+    pub fn new(_repo: &'repo Repository, blob: Blob<'repo>, name: String,
+               syntax_set: &'syntax SyntaxSet, theme: &'syntax highlighting::Theme) -> BlobPager<'repo, 'syntax> {
         let content = match std::str::from_utf8(blob.content()) {
             Ok(v) => v,
             Err(e) => panic!("unable to decode utf8 {}", e),
         };
-        let lines: Vec<String> = content.lines().map(|line| line.to_string()).collect();
+        let raw_lines: Vec<String> = content.lines().map(|line| line.to_string()).collect();
 
-        let (background_style, highlighted_lines) = highlight_text(&name, &lines);
+        let syntax = match Path::new(&name).extension().and_then(OsStr::to_str) {
+            Some(ext) => syntax_set.find_syntax_by_extension(ext).cloned(),
+            _ => match raw_lines.first() {
+                Some(line) => syntax_set.find_syntax_by_first_line(line).cloned(),
+                _ => None,
+            },
+        };
+        let background_style = match syntax {
+            Some(_) => {
+                if let Some(color) = theme.settings.background {
+                    Style::default().bg(to_color(&color))
+                } else {
+                    Style::default()
+                }
+            }
+            _ => Style::default(),
+        };
+
+        let mut highlighter = syntax.as_ref().map(|s| HighlightLines::new(s, &theme));
+
+        let lines: Vec<HighlightedLine> = raw_lines
+            .iter()
+            .map(|text| match &mut highlighter {
+                Some(h) => HighlightedLine::from(h.highlight_line(text, &syntax_set).unwrap()),
+                _ => HighlightedLine {
+                    components: vec![(Style::default(), text.to_string())],
+                },
+            })
+            .collect();
 
         BlobPager {
             top: 0,
@@ -110,7 +104,12 @@ impl<'repo> BlobPager<'repo> {
             blob: blob.clone(),
             name,
             background_style,
-            lines: highlighted_lines,
+            syntax_set,
+            syntax,
+            theme,
+            highlighter,
+            raw_lines,
+            lines,
         }
     }
 
@@ -118,13 +117,15 @@ impl<'repo> BlobPager<'repo> {
         repo: &'repo Repository,
         object: Object<'repo>,
         name: String,
+        syntax_set: &'syntax SyntaxSet,
+        theme: &'syntax highlighting::Theme,
     ) -> Result<Self, GitBrowserError> {
         match object.into_blob() {
             Ok(blob) => {
                 if blob.is_binary() {
                     Err(GitBrowserError::Error(ErrorKind::BinaryFile))
                 } else {
-                    Ok(BlobPager::new(repo, blob, name))
+                    Ok(BlobPager::new(repo, blob, name, syntax_set, theme))
                 }
             }
             Err(_) => Err(GitBrowserError::Error(ErrorKind::BlobReference)),
@@ -132,7 +133,7 @@ impl<'repo> BlobPager<'repo> {
     }
 }
 
-impl<'repo> Drawable<'repo> for BlobPager<'repo> {
+impl<'repo, 'syntax> Drawable<'repo> for BlobPager<'repo, 'syntax> {
     fn draw(&self, f: &mut Frame, area: Rect, content_block_ext: Block) -> Rect {
         let content_block = content_block_ext.style(self.background_style);
 
@@ -190,7 +191,7 @@ impl<'repo> Drawable<'repo> for BlobPager<'repo> {
     }
 }
 
-impl<'repo> Navigable<'repo> for BlobPager<'repo> {
+impl<'repo, 'syntax> Navigable<'repo> for BlobPager<'repo, 'syntax> {
     fn home(&mut self, _page_size: u16) {
         self.top = 0;
     }

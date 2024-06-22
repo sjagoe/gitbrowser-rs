@@ -12,11 +12,15 @@ use ratatui::{
     Frame,
 };
 
+use color_eyre::Result;
+
+use syntect::parsing::SyntaxSet;
+use syntect::highlighting;
+
 use crate::{
     traits::{Drawable, Navigable},
     ui::centered_rect,
 };
-use color_eyre::Result;
 
 mod blob_pager;
 mod external_editor;
@@ -45,28 +49,32 @@ pub enum AppMode {
     Error,
 }
 
-pub struct App<'repo> {
+pub struct App<'repo, 'syntax> {
     pub search_input: String,
     repo: &'repo Repository,
     commit: Option<Commit<'repo>>,
     refs_page: RefsPage<'repo>,
     tree_pages: Vec<TreePage<'repo>>,
-    blob_pager: Option<BlobPager<'repo>>,
+    blob_pager: Option<BlobPager<'repo, 'syntax>>,
     external_editor: Option<ExternalEditor>,
     mode_history: Vec<AppMode>,
     height: u16,
     active_error: Option<GitBrowserError>,
     editor: String,
+    syntax_set: &'syntax SyntaxSet,
+    theme: &'syntax highlighting::Theme,
 }
 
 pub struct Redraw(pub bool);
 
-impl<'repo> App<'repo> {
+impl<'repo, 'syntax> App<'repo, 'syntax> {
     pub fn new(
         repo: &'repo Repository,
         commit_object: Option<Object<'repo>>,
         editor: String,
-    ) -> App<'repo> {
+        syntax_set: &'syntax SyntaxSet,
+        theme: &'syntax highlighting::Theme,
+    ) -> App<'repo, 'syntax> {
         let mut new = App {
             search_input: String::new(),
             repo,
@@ -79,6 +87,8 @@ impl<'repo> App<'repo> {
             height: 0,
             active_error: None,
             editor,
+            syntax_set,
+            theme,
         };
         if let Some(object) = &commit_object {
             match object.peel_to_commit() {
@@ -325,7 +335,10 @@ impl<'repo> App<'repo> {
 
         match object.kind() {
             Some(ObjectType::Blob) => {
-                let pager = BlobPager::from_object(self.repo, object, page.selected_item())?;
+                let pager = BlobPager::from_object(
+                    self.repo, object, page.selected_item(),
+                    &self.syntax_set, &self.theme,
+                )?;
                 self.blob_pager = Some(pager);
                 self.mode_history.push(AppMode::ViewBlob);
                 Ok(())
