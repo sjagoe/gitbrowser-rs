@@ -35,22 +35,36 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        toolchain:
-          - stable
-        os:
-          - ubuntu-latest
-          - windows-latest
-          - macos-latest
         include:
+          - toolchain: stable
+            os: ubuntu-latest
+            target: x86_64-unknown-linux-musl
+
+          - toolchain: stable
+            os: ubuntu-latest
+            target: x86_64-unknown-linux-gnu
+
           - toolchain: beta
             os: ubuntu-latest
+            target: x86_64-unknown-linux-gnu
           - toolchain: nightly
             os: ubuntu-latest
+            target: x86_64-unknown-linux-gnu
+
+          - toolchain: stable
+            os: windows-latest
+            target: x86_64-pc-windows-msvc
+
+          - toolchain: stable
+            os: macos-latest
+            target: aarch64-apple-darwin
     steps:
       - name: Checkout
         uses: actions/checkout@v4
       - run: rustup update ${{ matrix.toolchain }} && rustup default ${{ matrix.toolchain }}
-      - run: cargo build --locked --verbose
+      - run: |
+          rustup target add ${{ matrix.target }}
+          cargo build --target=${{ matrix.target }}
 
   build-success:
     name: Build success
