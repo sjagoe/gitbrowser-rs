@@ -1,38 +1,123 @@
+use std::collections::VecDeque;
+use std::ffi::OsStr;
+use std::path::Path;
+use std::time::Instant;
+
 use git2::{Blob, Object, Repository};
 
 use ratatui::{
     layout::Rect,
-    prelude::{Line, Modifier, Span, Style},
+    prelude::{Color, Line, Modifier, Span, Style},
     widgets::{Block, Paragraph},
     Frame,
 };
 
 use color_eyre::Result;
 
+use syntect::easy::HighlightLines;
+use syntect::highlighting;
+use syntect::parsing::SyntaxSet;
+
 use crate::errors::{ErrorKind, GitBrowserError};
 use crate::traits::{Drawable, Navigable};
 
-pub struct BlobPager<'repo> {
+pub struct BlobPager<'repo, 'syntax> {
     top: usize,
     // repo: &'repo Repository,
     pub blob: Blob<'repo>,
     pub name: String,
-    lines: Vec<String>,
+    background_style: Style,
+    syntax_set: &'syntax SyntaxSet,
+    // syntax: Option<SyntaxReference>,
+    // theme: &'syntax highlighting::Theme,
+    highlighter: Option<HighlightLines<'syntax>>,
+    raw_lines: VecDeque<String>,
+    lines: Vec<HighlightedLine>,
 }
 
-impl<'repo> BlobPager<'repo> {
-    pub fn new(_repo: &'repo Repository, blob: Blob<'repo>, name: String) -> BlobPager<'repo> {
+struct HighlightedLine {
+    pub components: Vec<(Style, String)>,
+}
+
+impl<'a> From<Vec<(highlighting::Style, &'a str)>> for HighlightedLine {
+    fn from(value: Vec<(highlighting::Style, &'a str)>) -> HighlightedLine {
+        HighlightedLine {
+            components: value
+                .iter()
+                .map(|(style, text)| (TuiStyle::from(style).0, text.to_string()))
+                .collect(),
+        }
+    }
+}
+
+struct TuiColor(Color);
+struct TuiStyle(Style);
+
+impl From<&highlighting::Color> for TuiColor {
+    fn from(color: &highlighting::Color) -> TuiColor {
+        TuiColor(Color::Rgb(color.r, color.g, color.b))
+    }
+}
+
+impl From<&highlighting::Style> for TuiStyle {
+    fn from(style: &highlighting::Style) -> TuiStyle {
+        TuiStyle(
+            Style::default()
+                .fg(TuiColor::from(&style.foreground).0)
+                .bg(TuiColor::from(&style.background).0),
+        )
+    }
+}
+
+impl<'repo, 'syntax> BlobPager<'repo, 'syntax> {
+    pub fn new(
+        _repo: &'repo Repository,
+        blob: Blob<'repo>,
+        name: String,
+        syntax_set: &'syntax SyntaxSet,
+        theme: &'syntax highlighting::Theme,
+    ) -> BlobPager<'repo, 'syntax> {
         let content = match std::str::from_utf8(blob.content()) {
             Ok(v) => v,
             Err(e) => panic!("unable to decode utf8 {}", e),
         };
-        let lines = content.lines().map(|line| line.to_string()).collect();
+        let raw_lines: VecDeque<String> = content.lines().map(|line| line.to_string()).collect();
+
+        let syntax = {
+            let extension = Path::new(&name).extension().and_then(OsStr::to_str);
+            if let Some(ext) = extension {
+                syntax_set.find_syntax_by_extension(ext).cloned()
+            } else if let Some(line) = raw_lines.front() {
+                syntax_set.find_syntax_by_first_line(line).cloned()
+            } else {
+                None
+            }
+        };
+        let background_style = match syntax {
+            Some(_) => {
+                if let Some(color) = theme.settings.background {
+                    Style::default().bg(TuiColor::from(&color).0)
+                } else {
+                    Style::default()
+                }
+            }
+            _ => Style::default(),
+        };
+
+        let highlighter = syntax.as_ref().map(|s| HighlightLines::new(s, theme));
+
         BlobPager {
             top: 0,
             // repo: repo,
             blob: blob.clone(),
             name,
-            lines,
+            background_style,
+            syntax_set,
+            // syntax,
+            // theme,
+            highlighter,
+            raw_lines,
+            lines: vec![],
         }
     }
 
@@ -40,13 +125,15 @@ impl<'repo> BlobPager<'repo> {
         repo: &'repo Repository,
         object: Object<'repo>,
         name: String,
+        syntax_set: &'syntax SyntaxSet,
+        theme: &'syntax highlighting::Theme,
     ) -> Result<Self, GitBrowserError> {
         match object.into_blob() {
             Ok(blob) => {
                 if blob.is_binary() {
                     Err(GitBrowserError::Error(ErrorKind::BinaryFile))
                 } else {
-                    Ok(BlobPager::new(repo, blob, name))
+                    Ok(BlobPager::new(repo, blob, name, syntax_set, theme))
                 }
             }
             Err(_) => Err(GitBrowserError::Error(ErrorKind::BlobReference)),
@@ -54,8 +141,10 @@ impl<'repo> BlobPager<'repo> {
     }
 }
 
-impl<'repo> Drawable<'repo> for BlobPager<'repo> {
-    fn draw(&self, f: &mut Frame, area: Rect, content_block: Block) -> Rect {
+impl<'repo, 'syntax> Drawable<'repo> for BlobPager<'repo, 'syntax> {
+    fn draw(&self, f: &mut Frame, area: Rect, content_block_ext: Block) -> Rect {
+        let content_block = content_block_ext.style(self.background_style);
+
         let viewport = content_block.inner(area);
         let height: usize = viewport.height.into();
         let bottom = if self.top + height > self.lines.len() {
@@ -73,15 +162,25 @@ impl<'repo> Drawable<'repo> for BlobPager<'repo> {
         } else {
             vec![]
         };
+
         let lines: Vec<Line> = self.lines[self.top..bottom]
             .iter()
             .enumerate()
-            .map(|(index, text)| {
+            .map(|(index, highlighted_line)| {
                 let tmp = format!("{}", bottom);
                 let width = tmp.len();
                 let formatted = format!("{:width$} | ", index + self.top);
                 let lineno = Span::styled(formatted, Style::default().add_modifier(Modifier::DIM));
-                Line::from(vec![lineno, Span::from(text)])
+
+                let mut spans = highlighted_line
+                    .components
+                    .iter()
+                    .map(|(style, text)| Span::styled(text, *style))
+                    .collect();
+                let mut line = vec![lineno];
+                line.append(&mut spans);
+
+                Line::from(line)
             })
             .collect();
         let filled_lines: Vec<Line> = lines
@@ -100,7 +199,7 @@ impl<'repo> Drawable<'repo> for BlobPager<'repo> {
     }
 }
 
-impl<'repo> Navigable<'repo> for BlobPager<'repo> {
+impl<'repo, 'syntax> Navigable<'repo> for BlobPager<'repo, 'syntax> {
     fn home(&mut self, _page_size: u16) {
         self.top = 0;
     }
@@ -152,5 +251,26 @@ impl<'repo> Navigable<'repo> for BlobPager<'repo> {
 
     fn selected_item(&self) -> String {
         "".to_string()
+    }
+
+    fn next_tick(&mut self, block: bool) -> Result<(), GitBrowserError> {
+        if self.raw_lines.is_empty() {
+            return Ok(());
+        }
+
+        let iteration = Instant::now();
+        while (block || iteration.elapsed().as_millis() < 150) && !self.raw_lines.is_empty() {
+            let text = self.raw_lines.pop_front().unwrap();
+            let line = match &mut self.highlighter {
+                Some(h) => HighlightedLine::from(h.highlight_line(&text, self.syntax_set).unwrap()),
+                _ => HighlightedLine {
+                    components: vec![(Style::default(), text.to_string())],
+                },
+            };
+
+            self.lines.push(line);
+        }
+
+        Ok(())
     }
 }

@@ -14,6 +14,7 @@ pub enum NavigationAction {
     PreviousSelection,
     ExternalEditor,
     Exit,
+    Tick,
     Invalid,
 }
 
@@ -68,6 +69,7 @@ impl From<&NavigationAction> for ActionInfo {
             NavigationAction::ExternalEditor => ("C-e", "Launch external pager for blob"),
             // We never want to see this but have to define it
             NavigationAction::Invalid => ("invalid", "invalid"),
+            NavigationAction::Tick => ("invalid", "invalid"),
         };
         ActionInfo {
             key: key.to_string(),

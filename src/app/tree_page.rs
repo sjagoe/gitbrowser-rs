@@ -8,6 +8,7 @@ use ratatui::{
 };
 
 use crate::app::pagination::pagination;
+use crate::errors::GitBrowserError;
 use crate::traits::{Display, Drawable, Navigable};
 
 pub struct TreePage<'repo> {
@@ -166,5 +167,9 @@ impl<'repo> Navigable<'repo> for TreePage<'repo> {
                 panic!("no tree?!? {}", e);
             }
         }
+    }
+
+    fn next_tick(&mut self, _block: bool) -> Result<(), GitBrowserError> {
+        Ok(())
     }
 }

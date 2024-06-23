@@ -1,4 +1,5 @@
 use std::env;
+use std::time::Duration;
 
 use crossterm::event::{self, Event, KeyCode, KeyEventKind, KeyModifiers};
 use ratatui::{backend::Backend, Terminal};
@@ -64,8 +65,14 @@ fn main() -> Result<()> {
         }
     };
 
+    let syntax_set = two_face::syntax::extra_newlines();
+    let theme_set = two_face::theme::extra();
+    let theme = theme_set
+        .get(two_face::theme::EmbeddedThemeName::Nord)
+        .clone();
+
     let mut terminal = tui::init()?;
-    let mut app = App::new(&repo, commit, pager);
+    let mut app = App::new(&repo, commit, pager, &syntax_set, &theme);
     run_app(&mut terminal, &mut app)?;
     tui::restore()?;
     Ok(())
@@ -78,6 +85,17 @@ fn run_app<B: Backend>(terminal: &mut Terminal<B>, app: &mut App) -> Result<bool
             terminal.clear()?;
         }
         terminal.draw(|f| ui(f, app))?;
+
+        if !event::poll(Duration::from_millis(50))? {
+            redraw = match app.navigate(&NavigationAction::Tick) {
+                Ok(redraw) => redraw.0,
+                Err(error) => {
+                    app.error(error);
+                    true
+                }
+            };
+            continue;
+        }
 
         let read_event = event::read()?;
 
