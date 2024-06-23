@@ -1,6 +1,7 @@
 use std::collections::VecDeque;
 use std::ffi::OsStr;
 use std::path::Path;
+use std::time::Instant;
 
 use git2::{Blob, Object, Repository};
 
@@ -257,10 +258,8 @@ impl<'repo, 'syntax> Navigable<'repo> for BlobPager<'repo, 'syntax> {
             return Ok(());
         }
 
-        let mut count = 0;
-        let max_items = if block { self.raw_lines.len() } else { 100 };
-        while count < max_items && !self.raw_lines.is_empty() {
-            count += 1;
+        let iteration = Instant::now();
+        while (block || iteration.elapsed().as_millis() < 150) && !self.raw_lines.is_empty() {
             let text = self.raw_lines.pop_front().unwrap();
             let line = match &mut self.highlighter {
                 Some(h) => HighlightedLine::from(h.highlight_line(&text, self.syntax_set).unwrap()),
