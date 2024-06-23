@@ -1,7 +1,7 @@
 [package]
 name = "gitbrowser-rs"
 description = "A basic TUI git repository browser without needing to check out the revision being browsed."
-version = "0.1.1"
+version = "0.2.0"
 edition = "2021"
 license = "MIT"
 
@@ -17,10 +17,10 @@ syntect = "5.2.0"
 tempfile = "3.10.1"
 two-face = { version = "0.4.0", features = ["syntect-default-onig"] }
 
-[profile.dev.package."*"]
-# Set the default for dependencies in Development mode.
-opt-level = 3
-
 [profile.dev]
 # Turn on a small amount of optimisation in Development mode.
 opt-level = 1
+
+[profile.dev.package."*"]
+# Set the default for dependencies in Development mode.
+opt-level = 3
