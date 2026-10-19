@@ -22,12 +22,15 @@ use git2::{Object, Repository};
 #[derive(Parser, Debug)]
 #[command(version, about, long_about = None)]
 struct Args {
+    /// Path to repository to browser, default working directory
     #[arg(short, long)]
     repository: Option<String>,
 
+    /// Commit ID to browse, skipping ref selection
     #[arg(short, long)]
     commit_id: Option<String>,
 
+    /// External pager to use instead of PAGER environment variable
     #[arg(short, long)]
     pager: Option<String>,
 }
