@@ -2,64 +2,125 @@
   description = "Dumb curses git browser for reading files from arbitraty git revisions ";
 
   inputs = {
-    nixpkgs.url = "github:NixOS/nixpkgs/nixos-24.05";
-    systems.url = "github:nix-systems/default";
-    utils = {
-      url = "github:numtide/flake-utils";
-      inputs.systems.follows = "systems";
-    };
+    flake-parts.url = "github:hercules-ci/flake-parts";
+    nixpkgs.url = "github:NixOS/nixpkgs/nixos-unstable";
+
+    treefmt-nix.url = "github:numtide/treefmt-nix";
+
+    rust-overlay.url = "github:oxalica/rust-overlay";
+    crane.url = "github:ipetkov/crane";
   };
 
-  outputs = { self, nixpkgs, utils, ... }:
-    (utils.lib.eachDefaultSystem (system:
-      let
-        pkgs = nixpkgs.legacyPackages.${system};
-        inherit (pkgs) pkgsStatic;
-      in
+  # Add settings for your binary cache.
+  # nixConfig = {
+  #   extra-substituters = [
+  #   ];
+  #   extra-trusted-public-keys = [
+  #   ];
+  # };
+
+  outputs =
+    inputs@{ nixpkgs, flake-parts, ... }:
+    let
+      # For details on these options, See
+      # https://github.com/oxalica/rust-overlay?tab=readme-ov-file#cheat-sheet-common-usage-of-rust-bin
+      #
+      # Channel of the Rust toolchain (stable or beta).
+      rustChannel = "stable";
+      # Version (latest or specific date/semantic version)
+      rustVersion = "latest";
+      # Profile (default or minimal)
+      rustProfile = "default";
+    in
+    flake-parts.lib.mkFlake { inherit inputs; } {
+      systems = [
+        "x86_64-linux"
+        "aarch64-linux"
+      ];
+
+      imports = [
+        inputs.treefmt-nix.flakeModule
+      ];
+
+      perSystem =
         {
-          packages =
-            {
-              gitbrowser-rs =
-                pkgs.rustPlatform.buildRustPackage {
-                  pname = "gitbrowser-rs";
-                  version = "0.1.0";
-                  src = ./.;
-
-                  cargoLock.lockFile = ./Cargo.lock;
-                };
-              gitbrowser-rs-static =
-                pkgsStatic.rustPlatform.buildRustPackage {
-                  pname = "gitbrowser-rs";
-                  version = "0.1.0";
-                  src = ./.;
-
-                  cargoLock.lockFile = ./Cargo.lock;
-                };
-              default = self.packages.${system}.gitbrowser-rs;
+          config,
+          system,
+          pkgs,
+          lib,
+          craneLib,
+          commonArgs,
+          ...
+        }:
+        {
+          _module.args = {
+            pkgs = import nixpkgs {
+              inherit system;
+              overlays = [ inputs.rust-overlay.overlays.default ];
             };
+            craneLib = (inputs.crane.mkLib pkgs).overrideToolchain (
+              pkgs: pkgs.rust-bin.${rustChannel}.${rustVersion}.${rustProfile}
+            );
+            commonArgs = {
+              # You may have to set the package name and the version explicitly.
+              # pname = "name_of_your_package";
+              # version = "version";
 
-          apps = {
-            default = self.apps."${system}".gitbrowser-rs;
-            gitbrowser-rs = {
-              type = "app";
-              program = "${self.packages."${system}".default}/bin/gitbrowser-rs";
+              # Depending on your code base, you may have to customize the
+              # source filtering to include non-standard files during the build.
+              # See
+              # https://crane.dev/source-filtering.html?highlight=source#source-filtering
+              src = craneLib.cleanCargoSource (craneLib.path ./.);
+
+              # nativeBuildInputs = with pkgs; [
+              #   pkg-config
+              # ];
+
+              # buildInputs = with pkgs; [
+              #   openssl
+              # ];
             };
           };
 
-          devShells.default = pkgs.mkShell {
-            inputsFrom = [ self.packages.${system}.gitbrowser-rs ];
-            packages = with pkgs; [
-              cargo
-              rustc
-              rust-analyzer
-              rustfmt
-              clippy
-              rust.packages.stable.rustPlatform.rustLibSrc
+          # Build the executable package.
+          packages.default = craneLib.buildPackage (
+            commonArgs
+            // {
+              cargoArtifacts = craneLib.buildDepsOnly commonArgs;
+            }
+          );
+
+          devShells.default = craneLib.devShell {
+            inputsFrom = [
+              # Disable this when you first generate Cargo.lock
+              config.packages.default
             ];
+
+            packages = [
+              pkgs.rust-analyzer-unwrapped
+              # If your repository is a polyglot project, add other dependencies
+              # such as corepack, typescript, etc.
+            ];
+
+            RUST_SRC_PATH = "${
+              pkgs.rust-bin.${rustChannel}.${rustVersion}.rust-src
+            }/lib/rustlib/src/rust/library";
           };
-        })) // {
-          overlays.default = final: prev: {
-            gitbrowser-rs = self.packages.${prev.stdenv.hostPlatform.system}.gitbrowser-rs;
+
+          treefmt = {
+            projectRootFile = "flake.nix";
+            settings.excludes = [
+              ".direnv/*"
+              "target/*"
+              # "node_modules/*"
+            ];
+            programs = {
+              actionlint.enable = true;
+              nixfmt.enable = true;
+              rustfmt.enable = true;
+              zizmor.enable = true;
+            };
           };
         };
+    };
 }
